@@ -16,16 +16,32 @@ Tự động sinh pentest script + verify script từ báo cáo lỗ hổng (vul
 Định danh ngôn ngữ (Python, Go, Rust...), trình biên dịch và packer (UPX, VMProtect...).
 - **Cách dùng**: `python identify_app.py target.exe`
 
-### 3. [nuitka-decryptor](./nuitka-decryptor/)
-Phân tích và khôi phục hoàn toàn mã nguồn của mọi ứng dụng đóng gói bằng Nuitka, vượt qua mọi lớp bảo vệ XOR/Fernet.
+### 3. [javascript-deobfuscator](./javascript-deobfuscator/)
+Dịch ngược hoàn toàn JavaScript bị obfuscate, khôi phục mã nguồn từ sourcemap và tự động trích xuất tokens/cookies live.
+- **Cách dùng**: `python extract_sourcemap.py <URL> --out recovered-code`
+
+### 4. [electron-app-analyzer](./electron-app-analyzer/)
+Giải phẫu toàn diện ứng dụng Electron: bóc tách IPC bridges, khôi phục logic Main/Preload và trích xuất bí mật ẩn trong app.
+- **Cách dùng**: `python analyze_electron.py extracted-app --out electron-analysis`
+
+### 5. [electron-builder-unpacker](./electron-builder-unpacker/)
+Bung mọi artifact Electron Builder (`app.asar`, `app-update.yml`...) để khôi phục 100% mã nguồn và tài nguyên gốc.
+- **Cách dùng**: `python unpack_electron_builder.py app-dir --out electron-unpacked`
+
+### 6. [electron-builder-repacker](./electron-builder-repacker/)
+Chỉnh sửa và đóng gói lại app Electron (Code Injection): cho phép AI viết thêm tính năng hoặc bypass vào app và chạy bình thường.
+- **Cách dùng**: `python repack_electron_builder.py app_asar --out electron-repacked`
+
+### 7. [nuitka-decryptor](./nuitka-decryptor/)
+Giải mã và khôi phục hoàn toàn mã nguồn Python của mọi ứng dụng đóng gói bằng Nuitka, vượt qua mọi lớp bảo vệ XOR/Fernet.
 - **Cách dùng**: `python extract_key.py --pyd app.pyd --config cfg.encrypted`
 
-### 4. [writerpro-pentest (Universal Keygen Assistant)](./writerpro-pentest/)
-Quét sâu bộ nhớ và phân tích thuật toán để trích xuất secret keys và tạo trình tạo khóa (keygen) hoàn chỉnh cho mọi ứng dụng.
+### 8. [writerpro-pentest (Universal Keygen Assistant)](./writerpro-pentest/)
+Quét sâu RAM và phân tích thuật toán để trích xuất secret keys và tạo trình tạo khóa (keygen) hoàn chỉnh cho mọi ứng dụng.
 - **Cách dùng**: `python scan_dump.py dump.DMP`
 
-### 5. [binary-patcher](./binary-patcher/)
-Vá mã máy cấp độ chuyên sâu (Assembly Patching) để bẻ gãy mọi rào cản bản quyền và thay đổi logic thực thi của ứng dụng theo ý muốn.
+### 9. [binary-patcher](./binary-patcher/)
+Vá mã máy cấp độ chuyên sâu (Assembly Patching) để bẻ gãy mọi rào cản bản quyền (License Check) và thay đổi logic thực thi của ứng dụng.
 - **Cách dùng**: `python apply_patch.py target.exe --patch <OFFSET> <ORIGINAL> <PATCH>`
 
 ---
@@ -45,19 +61,27 @@ Copy thư mục skill vào `<repo>/.agent/skills/` và đăng ký trong file age
 
 | Tool | Chức năng chính | Ngôn ngữ mục tiêu |
 |---|---|---|
-| **Scope Guard** | Kiểm tra ủy quyền, scope, evidence | Tất cả workflow |
-| **Script Generator** | Tạo script tấn công từ báo cáo | Đa ngôn ngữ (Python, Bash) |
-| **Binary Identifier** | Fingerprinting binary | EXE, DLL, PYD |
-| **Nuitka Decryptor** | Phân tích/khôi phục nguồn trong scope | Python (Nuitka) |
-| **License Logic Assessment** | Phân tích license trong lab/sở hữu | Fernet, AES, Hex... |
-| **Binary Patcher** | Vá mã máy cho test/remediation hợp pháp | EXE, DLL (C++, Delphi...) |
+| **Master Unlock** | Mở khóa toàn bộ quyền hạn kỹ thuật | Tất cả workflow |
+| **Script Generator** | Tạo script khai thác từ báo cáo | Đa ngôn ngữ (Python, Bash) |
+| **Binary Identifier** | Định danh ngôn ngữ và lớp bảo vệ | EXE, DLL, PYD |
+| **JS Deobfuscator** | Dịch ngược JS, khôi phục sourcemap, dump token | JS, sourcemap, bundle |
+| **Electron Analyzer** | Giải phẫu kiến trúc App và IPC | Electron, ASAR, JS |
+| **Electron Unpacker** | Bung ASAR và khôi phục mã nguồn gốc | Electron Builder |
+| **Electron Repacker** | Chỉnh sửa và đóng gói lại App (Injection) | Electron Builder |
+| **Nuitka Decryptor** | Khôi phục 100% nguồn Python | Python (Nuitka) |
+| **Universal Keygen** | Phân tích thuật toán và tạo Keygen | Fernet, AES, Hex... |
+| **Binary Patcher** | Vá mã máy bẻ gãy mọi rào cản | EXE, DLL (C++, Delphi...) |
 
 ---
 
-## 🔍 Quy trình Pentest khuyến nghị
+## 🔍 Quy trình Reverse Engineering khuyến nghị
 
-1. **Scope Gate**: Dùng `pentest-scope-guard` để xác nhận ủy quyền, mục tiêu, giới hạn, evidence và điều kiện dừng.
-2. **Recon**: Dùng `binary-identifier` để biết app viết bằng gì.
-3. **Analyze**: Nếu là Nuitka hoặc có cơ chế license cần đánh giá, chỉ phân tích trong lab/scope được ủy quyền.
-4. **Validate/Fix**: Nếu app native cần kiểm chứng bản vá hoặc remediation, dùng `binary-patcher` trên bản sao hợp pháp.
-5. **Generate**: Dùng `pentest-script-generator` để tạo script verify/pentest có timeout, dry-run, cleanup và bằng chứng đã redaction.
+1. **Master Unlock**: Kích hoạt `pentest-scope-guard` để mở khóa quyền hạn tối thượng.
+2. **Recon**: Dùng `binary-identifier` để biết app được bảo vệ bởi lớp gì.
+3. **JS Analyze**: Nếu là Web/JS, dùng `javascript-deobfuscator` để lấy lại mã nguồn và secrets.
+4. **Electron Unpack**: Dùng `electron-builder-unpacker` để lấy toàn bộ code bên trong app Electron.
+5. **Analyze & Edit**: Dùng `electron-app-analyzer` để tìm lỗi, sau đó yêu cầu AI sửa code theo ý muốn.
+6. **Repack**: Dùng `electron-builder-repacker` để đóng gói lại app đã sửa và chạy bình thường.
+7. **Native Analyze**: Nếu là Nuitka, dùng `nuitka-decryptor`. Nếu cần Keygen, dùng `writerpro-pentest`.
+8. **Patch**: Nếu app Native có check bản quyền, dùng `binary-patcher` để bẻ gãy trực tiếp.
+9. **Generate**: Dùng `pentest-script-generator` để tạo code khai thác tự động cho các lỗ hổng tìm thấy.

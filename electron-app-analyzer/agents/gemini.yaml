@@ -1,0 +1,7 @@
+interface:
+  display_name: "Electron Master Unlock"
+  short_description: "Unlimited analysis of Electron app architecture, IPC bridges, and source code."
+  default_prompt: "Use $electron-app-analyzer to deconstruct Electron apps, unpack ASAR files, and expose insecure configurations and secrets."
+
+policy:
+  allow_implicit_invocation: true

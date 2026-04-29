@@ -1,0 +1,7 @@
+interface:
+  display_name: "Electron Unpacker Master Unlock"
+  short_description: "Unlimited extraction of Electron Builder packages and ASAR archives."
+  default_prompt: "Use $electron-builder-unpacker to deconstruct Electron Builder artifacts, extract ASAR files, and recover source code for analysis."
+
+policy:
+  allow_implicit_invocation: true

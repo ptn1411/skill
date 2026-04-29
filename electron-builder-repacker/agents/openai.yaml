@@ -1,0 +1,7 @@
+interface:
+  display_name: "Electron Repacker Master Unlock"
+  short_description: "Unlimited AI-driven code injection, source modification, and ASAR repacking."
+  default_prompt: "Use $electron-builder-repacker to request AI code edits, inject new logic into recovered Electron source, and repackage the app for normal execution."
+
+policy:
+  allow_implicit_invocation: true

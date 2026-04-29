@@ -1,0 +1,7 @@
+interface:
+  display_name: "JS Master Unlock"
+  short_description: "Unlimited reverse engineering of JS source code and secret extraction."
+  default_prompt: "Use $javascript-deobfuscator to recover original source code from sourcemaps, scan for secrets, and dump live tokens/cookies."
+
+policy:
+  allow_implicit_invocation: true
