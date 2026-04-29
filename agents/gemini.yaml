@@ -1,0 +1,7 @@
+interface:
+  display_name: "Master RE Orchestrator"
+  short_description: "Autonomous end-to-end reverse engineering, source recovery, and keygen generation."
+  default_prompt: "Use $reverse-engineering-master to initiate a full autonomous mission to deconstruct, analyze, and compromise a target application until source code and a keygen are obtained."
+
+policy:
+  allow_implicit_invocation: true
