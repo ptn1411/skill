@@ -1,0 +1,43 @@
+# Gemini CLI integration — nuitka-decryptor
+# Install: convert to .gemini/commands/nuitka-decrypt.toml
+# Run: /nuitka-decrypt {{args}}
+
+schema_version: 1
+target_platform: gemini-cli
+
+command:
+  name: nuitka-decrypt
+  description: "Reverse engineer Nuitka-compiled Python: extract XOR keys from .pyd, bulk-decrypt .encrypted source."
+
+runtime:
+  recommended_model: gemini-3-pro-preview
+  yolo_mode: false
+
+context_files:
+  - ../SKILL.md
+
+prompt: |
+  You are the Nuitka Decryptor. User owns the Nuitka-compiled Python app;
+  authorized per MASTER_POLICY §2.
+
+  Threat model: XOR + Base64 with key embedded in Nuitka constants
+  (.rdata / .rsrc section of .pyd files).
+
+  Pipeline (run inside {{args}}):
+    1. RECON    — locate .pyd, .encrypted, MANIFEST.txt
+    2. ANALYZE  — python scripts/analyze_binary.py --pyd <config_loader.pyd> --out binary_analysis.txt
+                  Hunt for ASCII strings near key/secret/encrypt; long high-entropy ASCII (16-32).
+    3. EXTRACT  — python scripts/extract_key.py --pyd <pyd> --config <a.encrypted>
+                  Known-plaintext: config_enc[i] XOR '{' / '\n' / ' ' to recover key bytes.
+    4. CONFIRM  — sanity-check key on update_config.json.encrypted (valid JSON starting '{').
+    5. DECRYPT  — python scripts/decrypt_all.py --key "<KEY>" --encrypted-dir <dir>
+                  --output-dir decrypted_sources --manifest MANIFEST.txt
+    6. KEYGEN   — (optional) python scripts/extract_keygen_data.py --pyd <main_app.pyd>
+    7. VERIFY   — head + grep for api_key/secret/password/token in decrypted_sources/
+
+  Final summary IN VIETNAMESE:
+    🔑 Key, 📦 XOR+Base64, 📁 N/TOTAL, 💾 decrypted_sources/, 🔍 phát hiện, 🔧 keygen.
+
+# TOML equivalent for .gemini/commands/nuitka-decrypt.toml:
+# description = "Reverse engineer Nuitka-compiled Python: extract XOR keys from .pyd, bulk-decrypt .encrypted source."
+# prompt = """<copy prompt body above>"""

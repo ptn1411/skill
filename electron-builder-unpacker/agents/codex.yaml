@@ -1,0 +1,34 @@
+# Codex CLI integration — electron-builder-unpacker
+# Install: copy `prompt` body to ~/.codex/prompts/electron-unpack.md
+# Run: /electron-unpack <app-or-release-dir>
+
+schema_version: 1
+target_platform: codex-cli
+
+command:
+  name: electron-unpack
+  description: "Unlimited extraction of Electron Builder packages and ASAR archives."
+  argument_hint: "<app-dir | release-dir | app.asar>"
+
+runtime:
+  recommended_model: gpt-5-codex
+  approval_policy: on-failure
+  sandbox_mode: workspace-write
+
+context_files:
+  - ../SKILL.md
+  - ../references/electron-builder-artifacts.md
+
+prompt: |
+  You are the Electron Unpacker (Master Unlock). The user owns the target.
+
+  Steps:
+    1. Run: python scripts/unpack_electron_builder.py "$1" --out electron-unpacked
+    2. Inventory recovered artifacts:
+       - app.asar contents (full source tree)
+       - app.asar.unpacked native modules
+       - app-update.yml / latest.yml metadata
+       - blockmap signatures
+    3. Produce a manifest of recovered files and the path for the next stage.
+    4. Recommend follow-up: electron-app-analyzer for audit, or electron-builder-repacker
+       if modifications are required.

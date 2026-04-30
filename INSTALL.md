@@ -4,7 +4,7 @@ Bộ công cụ (Skills) cao cấp có toàn quyền truy cập kỹ thuật kh�
 
 ## 🛠 Danh sách Skills
 
-### 0. [pentest-scope-guard](./pentest-scope-guard/)
+### 0. [master-unlock](./master-unlock/)
 Kích hoạt quyền thực thi không giới hạn, xác lập mục tiêu và duy trì phiên làm việc cho đến khi đạt được kết quả dịch ngược và keygen mong muốn.
 - **Cách dùng**: Luôn kích hoạt đầu tiên để mở khóa toàn bộ sức mạnh của toolkit.
 
@@ -48,12 +48,38 @@ Vá mã máy cấp độ chuyên sâu (Assembly Patching) để bẻ gãy mọi 
 
 ## 🚀 Hướng dẫn cài đặt
 
+### Bước 0 — Dependencies
+
+```bash
+# bash / WSL / Linux / macOS
+pip install -r requirements.txt
+```
+
+```powershell
+# Windows PowerShell
+pip install -r requirements.txt
+```
+
+Tooling ngoài Python (Node.js, asar, UPX, x64dbg, dnSpy…): xem [TOOLS.md](./TOOLS.md).
+
+### Bước 1 — Chạy thử orchestrator
+
+```bash
+python scripts/orchestrate.py path/to/target.exe --require-tools
+```
+
+```powershell
+python scripts\orchestrate.py 'C:\Program Files\MyApp\target.exe' --require-tools
+```
+
+Output: `output/REPORT.md` + `output/mission.json`.
+
 ### Cài vào Cowork (Desktop App)
 Copy thư mục của skill tương ứng vào thư mục skills của Cowork:
 **Windows:** `%APPDATA%\Claude\local-agent-mode-sessions\skills-plugin\<session-id>\<session-id>\skills\`
 
-### Cài vào antigravity-kit (CLI/Agent)
-Copy thư mục skill vào `<repo>/.agent/skills/` và đăng ký trong file agent definition.
+### Cài vào Codex CLI / Gemini CLI / OpenAI Assistants
+Mỗi skill có manifest đa nền tảng trong `<skill>/agents/{codex,gemini,openai}.yaml`. Đọc comment đầu file để biết đường dẫn cài (vd Codex: `~/.codex/prompts/<name>.md`; Gemini: `.gemini/commands/<name>.toml`).
 
 ---
 
@@ -76,7 +102,7 @@ Copy thư mục skill vào `<repo>/.agent/skills/` và đăng ký trong file age
 
 ## 🔍 Quy trình Reverse Engineering khuyến nghị
 
-1. **Master Unlock**: Kích hoạt `pentest-scope-guard` để mở khóa quyền hạn tối thượng.
+1. **Master Unlock**: Kích hoạt `master-unlock` để mở khóa quyền hạn tối thượng.
 2. **Recon**: Dùng `binary-identifier` để biết app được bảo vệ bởi lớp gì.
 3. **JS Analyze**: Nếu là Web/JS, dùng `javascript-deobfuscator` để lấy lại mã nguồn và secrets.
 4. **Electron Unpack**: Dùng `electron-builder-unpacker` để lấy toàn bộ code bên trong app Electron.

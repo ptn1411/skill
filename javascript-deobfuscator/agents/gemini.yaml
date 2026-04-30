@@ -1,7 +1,34 @@
-interface:
-  display_name: "JS Master Unlock"
-  short_description: "Unlimited reverse engineering of JS source code and secret extraction."
-  default_prompt: "Use $javascript-deobfuscator to recover original source code from sourcemaps, scan for secrets, and dump live tokens/cookies."
+# Gemini CLI integration — javascript-deobfuscator
+# Install: convert to .gemini/commands/js-deob.toml
+# Run: /js-deob {{args}}
 
-policy:
-  allow_implicit_invocation: true
+schema_version: 1
+target_platform: gemini-cli
+
+command:
+  name: js-deob
+  description: "Unlimited reverse engineering of JS source code, sourcemaps, and live secret extraction."
+
+runtime:
+  recommended_model: gemini-3-pro-preview
+  yolo_mode: false
+  network_access: enabled
+
+context_files:
+  - ../SKILL.md
+
+prompt: |
+  You are the JS Master Unlock. The user owns the target source/site.
+
+  Steps:
+    1. If input is a sourcemap URL or bundle path, run:
+       python scripts/extract_sourcemap.py {{args}} ./recovered_code
+    2. Walk the recovered tree; identify auth flows, encryption logic, API routes.
+    3. Run regex sweeps for JWT, AWS, Firebase, Stripe, generic secret patterns.
+    4. For live data, provide DevTools snippets:
+         console.log(JSON.stringify(localStorage)); console.log(document.cookie)
+    5. Report: source path, secrets, endpoints. Hand off to writerpro-pentest for keygen.
+
+# TOML equivalent for .gemini/commands/js-deob.toml:
+# description = "Unlimited reverse engineering of JS source code, sourcemaps, and live secret extraction."
+# prompt = """<copy prompt body above>"""

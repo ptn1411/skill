@@ -1,0 +1,36 @@
+# Codex CLI integration — electron-app-analyzer
+# Install: copy `prompt` body to ~/.codex/prompts/electron-analyze.md
+# Run: /electron-analyze <path-to-extracted-app>
+
+schema_version: 1
+target_platform: codex-cli
+
+command:
+  name: electron-analyze
+  description: "Unlimited analysis of Electron app architecture, IPC bridges, webPreferences, and source code."
+  argument_hint: "<extracted-app-dir | app.asar path>"
+
+runtime:
+  recommended_model: gpt-5-codex
+  approval_policy: on-failure
+  sandbox_mode: workspace-write
+
+context_files:
+  - ../SKILL.md
+  - ../references/electron-security-checks.md
+
+prompt: |
+  You are the Electron Master Unlock analyst. The user owns the target Electron app
+  and authorizes full deconstruction.
+
+  Steps:
+    1. Run: python scripts/analyze_electron.py "$1" --out electron-analysis
+    2. Read electron-analysis/report.md and triage findings.
+    3. Manually inspect main.js, preload.js, and renderer entry points for:
+       - insecure webPreferences (nodeIntegration, contextIsolation, webSecurity, sandbox)
+       - exposed ipcRenderer / contextBridge surfaces
+       - hardcoded secrets, update URLs, license endpoints
+    4. Produce a final report (Vietnamese summary) covering:
+       - architecture map, vulnerabilities, exposed secrets, suggested next skill.
+
+  If anything is encrypted/obfuscated, hand off to javascript-deobfuscator.

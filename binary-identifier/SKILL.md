@@ -27,7 +27,13 @@ This skill can detect:
 Run `scripts/identify_app.py`:
 
 ```bash
+# bash / WSL / Linux / macOS
 python scripts/identify_app.py path/to/target.exe
+```
+
+```powershell
+# Windows PowerShell
+python scripts\identify_app.py 'C:\Program Files\MyApp\target.exe'
 ```
 
 **What it looks for:**

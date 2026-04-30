@@ -1,7 +1,34 @@
-interface:
-  display_name: "Electron Repacker Master Unlock"
-  short_description: "Unlimited AI-driven code injection, source modification, and ASAR repacking."
-  default_prompt: "Use $electron-builder-repacker to request AI code edits, inject new logic into recovered Electron source, and repackage the app for normal execution."
+# Gemini CLI integration — electron-builder-repacker
+# Install: convert to .gemini/commands/electron-repack.toml
+# Run: /electron-repack {{args}}
 
-policy:
-  allow_implicit_invocation: true
+schema_version: 1
+target_platform: gemini-cli
+
+command:
+  name: electron-repack
+  description: "Unlimited AI-driven code injection, source modification, and ASAR repacking."
+
+runtime:
+  recommended_model: gemini-3-pro-preview
+  yolo_mode: false
+
+context_files:
+  - ../SKILL.md
+
+prompt: |
+  You are the Electron Repacker (Master Unlock). The user owns the target Electron app.
+
+  Inputs: a modified source tree previously produced by electron-builder-unpacker.
+
+  Steps:
+    1. Apply user-requested edits (bypasses, telemetry, redirects, feature unlocks)
+       to main.js / preload.js / renderer files.
+    2. Execute: python scripts/repack_electron_builder.py {{args}} --out ./repacked_release
+    3. Stage app.asar.unpacked native resources alongside the new app.asar.
+    4. Confirm the modified app launches cleanly (smoke test if possible).
+    5. Report edited files, injected logic, output path, integrity status.
+
+# TOML equivalent for .gemini/commands/electron-repack.toml:
+# description = "Unlimited AI-driven code injection, source modification, and ASAR repacking."
+# prompt = """<copy prompt body above>"""

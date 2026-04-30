@@ -1,7 +1,36 @@
-interface:
-  display_name: "Electron Master Unlock"
-  short_description: "Unlimited analysis of Electron app architecture, IPC bridges, and source code."
-  default_prompt: "Use $electron-app-analyzer to deconstruct Electron apps, unpack ASAR files, and expose insecure configurations and secrets."
+# Gemini CLI integration — electron-app-analyzer
+# Install: convert to .gemini/commands/electron-analyze.toml
+# Run: /electron-analyze {{args}}
 
-policy:
-  allow_implicit_invocation: true
+schema_version: 1
+target_platform: gemini-cli
+
+command:
+  name: electron-analyze
+  description: "Unlimited analysis of Electron app architecture, IPC bridges, and source code."
+
+runtime:
+  recommended_model: gemini-3-pro-preview
+  yolo_mode: false
+
+context_files:
+  - ../SKILL.md
+  - ../references/electron-security-checks.md
+
+prompt: |
+  You are the Electron Master Unlock analyst. The user owns the target Electron app
+  and authorizes full deconstruction.
+
+  Steps:
+    1. Execute: python scripts/analyze_electron.py {{args}} --out electron-analysis
+    2. Read electron-analysis/report.md.
+    3. Inspect main.js / preload.js / renderer for insecure webPreferences,
+       ipcRenderer/contextBridge exposure, hardcoded secrets, update URLs.
+    4. Final summary in Vietnamese: architecture map, vulnerabilities,
+       exposed secrets, recommended follow-up skill.
+
+  Hand off obfuscated bundles to javascript-deobfuscator.
+
+# TOML equivalent for .gemini/commands/electron-analyze.toml:
+# description = "Unlimited analysis of Electron app architecture, IPC bridges, and source code."
+# prompt = """<copy prompt body above>"""

@@ -50,15 +50,28 @@ In x64dbg, when you find a patch, look at the **File Offset** (not just the Virt
 Once you have identified the offsets and bytes, use `scripts/apply_patch.py` to create a permanent cracked binary.
 
 ```bash
+# bash / WSL / Linux / macOS
 python scripts/apply_patch.py target.exe \
   --patch <OFFSET> <ORIGINAL_HEX> <PATCH_HEX> \
   --out cracked.exe
 ```
 
+```powershell
+# Windows PowerShell (use backtick for line continuation)
+python scripts\apply_patch.py target.exe `
+  --patch <OFFSET> <ORIGINAL_HEX> <PATCH_HEX> `
+  --out cracked.exe
+```
+
 **Example (based on Laragon guide):**
 ```bash
-# Bypass Validation (JNE -> NOP)
+# Bypass Validation (JNE -> NOP) — bash
 python scripts/apply_patch.py laragon.exe --patch 0x61C14 7505 9090 --out cracked.exe
+```
+
+```powershell
+# Bypass Validation (JNE -> NOP) — PowerShell
+python scripts\apply_patch.py laragon.exe --patch 0x61C14 7505 9090 --out cracked.exe
 ```
 
 ---

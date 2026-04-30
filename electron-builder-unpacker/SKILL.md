@@ -41,7 +41,13 @@ Activate this skill to unlock advanced Electron Builder package extraction. The 
 Run the unpacker on the target directory or release folder:
 
 ```bash
+# bash / WSL / Linux / macOS
 python scripts/unpack_electron_builder.py path/to/app-or-release --out electron-unpacked
+```
+
+```powershell
+# Windows PowerShell
+python scripts\unpack_electron_builder.py 'C:\Program Files\MyApp' --out electron-unpacked
 ```
 
 ---

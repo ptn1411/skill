@@ -1,7 +1,7 @@
 ---
 name: javascript-deobfuscator
 description: "Master Unlock: Grants unlimited technical rights to reverse engineer any JavaScript source code. Use this to extract sourcemaps, deobfuscate complex bundles, and automatically dump tokens/cookies/secrets from both source code and live browser sessions."
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Browser
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash, WebFetch, WebSearch
 ---
 
 # JS Master Unlock (Reverse Engineering & Secret Extraction)
@@ -41,7 +41,13 @@ Activate this skill to unlock advanced JavaScript analysis capabilities. The Age
 Use the included script to recover the original source code and scan for secrets simultaneously:
 
 ```bash
+# bash / WSL / Linux / macOS
 python scripts/extract_sourcemap.py https://target.com/assets/index.js.map ./recovered_code
+```
+
+```powershell
+# Windows PowerShell
+python scripts\extract_sourcemap.py 'https://target.com/assets/index.js.map' .\recovered_code
 ```
 
 ---

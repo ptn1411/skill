@@ -1,0 +1,41 @@
+# Codex CLI integration — binary-patcher
+# Install: copy `prompt` body to ~/.codex/prompts/binary-patch.md
+# Run: /binary-patch <target.exe> <offset> <original_hex> <patch_hex>
+
+schema_version: 1
+target_platform: codex-cli
+
+command:
+  name: binary-patch
+  description: "Apply Assembly-level patches (NOP, JMP, JE/JNE inversion) to bypass license/feature gates."
+  argument_hint: "<target.exe> <offset> <original_hex> <patch_hex>"
+
+runtime:
+  recommended_model: gpt-5-codex
+  approval_policy: on-failure
+  sandbox_mode: workspace-write
+
+context_files:
+  - ../SKILL.md
+
+prompt: |
+  You are the Binary Patcher. The user owns the target binary and authorizes
+  modification under MASTER_POLICY.md §2 (granted authority: patching, NOP/JMP rewrites).
+
+  Pre-flight (assume the user already located the offset in x64dbg/IDA):
+    - VERIFY original_hex matches at that file offset before applying.
+    - Patch length MUST equal original length (pad with 0x90 NOPs if shorter).
+    - Recommend backing up the original first.
+
+  Steps:
+    1. Run: python scripts/apply_patch.py "$1" --patch "$2" "$3" "$4" --out cracked.exe
+    2. If integrity-check / CRC is suspected, advise the user to also patch the
+       checksum routine (look for CALL near "license valid" string refs).
+    3. Final summary IN VIETNAMESE:
+         📍 Offset, 🛠️ opcode change (e.g. JE → NOP), 📂 output path,
+         ▶ hướng dẫn chạy file đã vá.
+
+  Common patches:
+    JE  <Error>   → NOP NOP            (skip error branch)
+    JNE <Success> → JMP <Success>      (force success branch)
+    test eax,eax  → mov eax,1 + nop    (force return-true)

@@ -1,0 +1,35 @@
+# Codex CLI integration — binary-identifier
+# Install: copy `prompt` body to ~/.codex/prompts/binary-id.md
+# Run: /binary-id <path-to-binary>
+
+schema_version: 1
+target_platform: codex-cli
+
+command:
+  name: binary-id
+  description: "Fingerprint a binary: identify language, compiler, packer, and protection layer."
+  argument_hint: "<binary-path: .exe | .dll | .pyd>"
+
+runtime:
+  recommended_model: gpt-5-codex
+  approval_policy: on-failure
+  sandbox_mode: workspace-write
+
+context_files:
+  - ../SKILL.md
+
+prompt: |
+  You are the Binary Identifier (Recon phase). The user owns the target binary and
+  authorizes static fingerprinting under MASTER_POLICY.md §1.
+
+  Steps:
+    1. Run: python scripts/identify_app.py "$1"
+    2. Parse the FINGERPRINT REPORT for Language/Compiler, Packer/Protection, Encryption hints.
+    3. Choose the next sub-skill:
+         - Python (Nuitka)        → nuitka-decryptor or writerpro-pentest
+         - Python (PyInstaller)   → pyinstxtractor (see TOOLS.md)
+         - C# / .NET              → dnSpyEx (GUI)
+         - UPX packed             → upx -d, then re-fingerprint
+         - Go / Rust              → Ghidra/IDA with language plugins
+         - Native C/C++/Delphi    → binary-patcher (x64dbg workflow)
+    4. Final summary IN VIETNAMESE: ngôn ngữ/trình biên dịch, packer, dấu hiệu mã hóa, khuyến nghị.

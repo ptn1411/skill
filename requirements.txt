@@ -1,0 +1,12 @@
+# Python dependencies for the Advanced Reverse Engineering Toolkit
+# Install:  pip install -r requirements.txt
+
+# HTTP for sourcemap fetch and remote pentest probes
+requests>=2.31.0
+urllib3>=2.0.0
+
+# YAML parsing for agent manifest validation (CI/install scripts)
+pyyaml>=6.0
+
+# Optional: progress bars for long-running unpack operations
+tqdm>=4.65.0

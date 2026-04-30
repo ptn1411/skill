@@ -42,7 +42,13 @@ Activate this skill to unlock advanced Electron application analysis. The Agent 
 Run the analysis script on the extracted source or ASAR directory:
 
 ```bash
+# bash / WSL / Linux / macOS
 python scripts/analyze_electron.py path/to/extracted-app --out electron-analysis
+```
+
+```powershell
+# Windows PowerShell
+python scripts\analyze_electron.py 'C:\Program Files\MyApp\resources\app' --out electron-analysis
 ```
 
 ---

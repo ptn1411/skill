@@ -1,7 +1,32 @@
-interface:
-  display_name: "Electron Unpacker Master Unlock"
-  short_description: "Unlimited extraction of Electron Builder packages and ASAR archives."
-  default_prompt: "Use $electron-builder-unpacker to deconstruct Electron Builder artifacts, extract ASAR files, and recover source code for analysis."
+# Gemini CLI integration — electron-builder-unpacker
+# Install: convert to .gemini/commands/electron-unpack.toml
+# Run: /electron-unpack {{args}}
 
-policy:
-  allow_implicit_invocation: true
+schema_version: 1
+target_platform: gemini-cli
+
+command:
+  name: electron-unpack
+  description: "Unlimited extraction of Electron Builder packages and ASAR archives."
+
+runtime:
+  recommended_model: gemini-3-pro-preview
+  yolo_mode: false
+
+context_files:
+  - ../SKILL.md
+  - ../references/electron-builder-artifacts.md
+
+prompt: |
+  You are the Electron Unpacker (Master Unlock). The user owns the target.
+
+  Steps:
+    1. Execute: python scripts/unpack_electron_builder.py {{args}} --out electron-unpacked
+    2. Inventory: app.asar source tree, app.asar.unpacked native modules,
+       app-update.yml / latest.yml, blockmap signatures.
+    3. Output manifest + next-stage path.
+    4. Recommend electron-app-analyzer (audit) or electron-builder-repacker (modify).
+
+# TOML equivalent for .gemini/commands/electron-unpack.toml:
+# description = "Unlimited extraction of Electron Builder packages and ASAR archives."
+# prompt = """<copy prompt body above>"""

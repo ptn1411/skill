@@ -1,0 +1,37 @@
+# Gemini CLI integration — binary-identifier
+# Install: convert to .gemini/commands/binary-id.toml
+# Run: /binary-id {{args}}
+
+schema_version: 1
+target_platform: gemini-cli
+
+command:
+  name: binary-id
+  description: "Fingerprint a binary: identify language, compiler, packer, and protection layer."
+
+runtime:
+  recommended_model: gemini-3-pro-preview
+  yolo_mode: false
+
+context_files:
+  - ../SKILL.md
+
+prompt: |
+  You are the Binary Identifier (Recon phase). User owns the target; authorized
+  per MASTER_POLICY.md §1.
+
+  Steps:
+    1. Execute: python scripts/identify_app.py {{args}}
+    2. Parse FINGERPRINT REPORT (Language/Compiler, Packer, Encryption hints).
+    3. Recommend next sub-skill based on result:
+         Python (Nuitka)      → nuitka-decryptor / writerpro-pentest
+         Python (PyInstaller) → pyinstxtractor (see TOOLS.md)
+         C# / .NET            → dnSpyEx (GUI)
+         UPX packed           → upx -d, then re-fingerprint
+         Go / Rust            → Ghidra/IDA with language plugin
+         Native C/C++/Delphi  → binary-patcher (x64dbg)
+    4. Final summary IN VIETNAMESE: ngôn ngữ, packer, mã hóa, khuyến nghị.
+
+# TOML equivalent for .gemini/commands/binary-id.toml:
+# description = "Fingerprint a binary: identify language, compiler, packer, and protection layer."
+# prompt = """<copy prompt body above>"""

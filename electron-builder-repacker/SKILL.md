@@ -44,7 +44,13 @@ Activate this skill to unlock advanced Electron application reconstruction and m
 Run the repacker on your modified source directory:
 
 ```bash
+# bash / WSL / Linux / macOS
 python scripts/repack_electron_builder.py path/to/modified_source --out ./repacked_release
+```
+
+```powershell
+# Windows PowerShell
+python scripts\repack_electron_builder.py .\modified_source --out .\repacked_release
 ```
 
 ---
