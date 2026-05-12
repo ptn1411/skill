@@ -18,7 +18,9 @@ MARKERS = {
         rb'runtime.go', rb'main.main', rb'go.itab.', rb'runtime.mallocgc', rb'Go build ID'
     ],
     'Rust': [
-        rb'rustc', rb'std::', rb'core::', rb'alloc::', rb'__rust_alloc'
+        rb'rustc', rb'std::', rb'core::', rb'alloc::', rb'__rust_alloc',
+        rb'rust_begin_unwind', rb'rust_panic', rb'\.rs:\d+:\d+',
+        rb'core::panicking', rb'core::result::Result',
     ],
     'C# / .NET': [
         rb'mscoree.dll', rb'_CorExeMain', rb'System.Reflection', rb'mscorlib', rb'CLR'
@@ -42,7 +44,8 @@ PACKERS = {
     'VMProtect': [rb'.vmp0', rb'.vmp1', rb'VMProtect begin'],
     'Themida': [rb'.themida', rb'Themida_V3'],
     'VBox / Enigma': [rb'.enigma', rb'Boxed App'],
-    'Fernet (Encryption Indicator)': [rb'cryptography.fernet', rb'[A-Za-z0-9_-]{43}=']
+    'Fernet (Encryption Indicator)': [rb'cryptography.fernet', rb'[A-Za-z0-9_-]{43}='],
+    'Tauri': [rb'tauri::app', rb'__TAURI__', rb'tauri_runtime', rb'wry::webview', rb'tao::window'],
 }
 
 def identify(filepath):
@@ -84,6 +87,30 @@ def identify(filepath):
     if b'nuitka' in data.lower():
         if 'Python' not in results['Language/Compiler']:
              results['Language/Compiler'].append('Python (Nuitka)')
+
+    # 3b. Java archive / class file detection
+    if data[:4] == b'\xca\xfe\xba\xbe':
+        if 'Java' not in results['Language/Compiler']:
+            results['Language/Compiler'].append('Java')
+        results['Misc/Indicators'].append('Java class file (0xCAFEBABE)')
+    elif data[:2] == b'PK':
+        import zipfile, io
+        try:
+            with zipfile.ZipFile(io.BytesIO(data)) as zf:
+                names = zf.namelist()
+                if 'classes.dex' in names or 'AndroidManifest.xml' in names:
+                    if 'Java' not in results['Language/Compiler']:
+                        results['Language/Compiler'].append('Java')
+                    results['Packer/Protection'].append('Android APK')
+                elif 'META-INF/MANIFEST.MF' in names and any(n.endswith('.class') for n in names):
+                    if 'Java' not in results['Language/Compiler']:
+                        results['Language/Compiler'].append('Java')
+                    if any(n.startswith('WEB-INF/') for n in names):
+                        results['Misc/Indicators'].append('Java WAR archive')
+                    else:
+                        results['Misc/Indicators'].append('Java JAR archive')
+        except Exception:
+            pass
     
     # 4. Output Report
     print("\n" + "=" * 40)
@@ -105,7 +132,18 @@ def identify(filepath):
     elif 'UPX' in results['Packer/Protection']:
         print("Recommendation: Try 'upx -d <file>' to unpack before analysis.")
     elif 'C# / .NET' in results['Language/Compiler']:
-        print("Recommendation: Use 'dnSpy' or 'ILSpy' for decompilation.")
+        print("Recommendation: Use 'dotnet-decompiler' (ilspycmd + de4dot). Then 'dotnet-patcher' + 'dotnet-keygen'.")
+    elif 'Tauri' in results['Packer/Protection']:
+        print("Recommendation: Use 'tauri-unpacker' to extract web assets, then 'rust-binary-analyzer' for backend.")
+    elif 'Rust' in results['Language/Compiler']:
+        print("Recommendation: Use 'rust-binary-analyzer' for symbol/module map. Use IDA/Ghidra for code.")
+    elif 'PyInstaller' in results['Packer/Protection']:
+        print("Recommendation: Use 'pyinstaller-unpacker' to extract .pyc and decompile.")
+    elif 'Java' in results['Language/Compiler']:
+        if 'Android APK' in results['Packer/Protection']:
+            print("Recommendation: Use 'java-decompiler' with JADX for APK decompilation.")
+        else:
+            print("Recommendation: Use 'java-decompiler' (CFR/Procyon/FernFlower) for decompilation.")
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:

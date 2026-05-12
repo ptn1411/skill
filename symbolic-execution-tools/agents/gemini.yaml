@@ -1,0 +1,36 @@
+# Gemini CLI integration — symbolic-execution-tools
+# Install: convert to .gemini/commands/symexec.toml
+# Run: /symexec {{args}}
+
+schema_version: 1
+target_platform: gemini-cli
+
+command:
+  name: symexec
+  description: "Symbolic execution / constraint solving with angr, Z3, Unicorn, or Qiling."
+
+runtime:
+  recommended_model: gemini-3-pro-preview
+  yolo_mode: false
+
+context_files:
+  - ../SKILL.md
+
+prompt: |
+  You are the Symbolic Execution operator. Owner-attested target (MASTER_POLICY §1).
+
+  Workflow on {{args}}:
+    1. Pick tool (SKILL.md §1): Z3 / angr / Unicorn / Qiling / combo.
+    2. Identify target check function (string refs, license error message).
+    3. State factory: entry_state, blank_state(addr=…), or call_state(addr, …).
+    4. Symbolize only decision-driving bytes; constrain to printable/range.
+    5. Stub externals (strcmp, scanf, printf, malloc) via SimProcedures/hooks.
+    6. Tame path explosion: LoopSeer, LengthLimiter, DFS, num_find=1.
+    7. explore(find=, avoid=); verify recovered input on real binary.
+
+  Hand off to binary-patcher or writerpro-pentest.
+  Final summary IN VIETNAMESE: tool, target, solved input, runtime, script path.
+
+# TOML equivalent for .gemini/commands/symexec.toml:
+# description = "Symbolic execution / constraint solving with angr, Z3, Unicorn, or Qiling."
+# prompt = """<copy prompt body above>"""

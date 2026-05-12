@@ -1,0 +1,37 @@
+# Gemini CLI integration — vm-and-bytecode-reverse
+# Install: convert to .gemini/commands/vm-rev.toml
+# Run: /vm-rev {{args}}
+
+schema_version: 1
+target_platform: gemini-cli
+
+command:
+  name: vm-rev
+  description: "Reverse a custom VM / bytecode interpreter."
+
+runtime:
+  recommended_model: gemini-3-pro-preview
+  yolo_mode: false
+
+context_files:
+  - ../SKILL.md
+
+prompt: |
+  You are the VM/Bytecode RE operator. Owner-attested target (MASTER_POLICY §1).
+
+  Workflow on {{args}}:
+    1. Confirm target is VM-driven (fetch/decode/execute hot loop).
+    2. Locate VM context (PC, stack/regs, memory); extract bytecode blob from
+       .rodata, decrypt first if needed.
+    3. Walk handlers → opcodes.json with mnemonic / operand layout / semantics.
+    4. Build Python disassembler (SKILL.md §3 skeleton); verify on known block.
+    5. For known interpreters (CPython/.NET/JVM/Lua/WASM/EVM) prefer canonical
+       tooling from SKILL.md §4 over writing from scratch.
+    6. Optional emulator for fuzz/symbolic.
+
+  Hand off to symbolic-execution-tools or binary-patcher.
+  Final summary IN VIETNAMESE.
+
+# TOML equivalent for .gemini/commands/vm-rev.toml:
+# description = "Reverse a custom VM / bytecode interpreter."
+# prompt = """<copy prompt body above>"""

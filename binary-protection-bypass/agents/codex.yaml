@@ -1,0 +1,38 @@
+# Codex CLI integration — binary-protection-bypass
+# Install: copy `prompt` body to ~/.codex/prompts/protect-bypass.md
+# Run: /protect-bypass <binary>
+
+schema_version: 1
+target_platform: codex-cli
+
+command:
+  name: protect-bypass
+  description: "Identify ELF mitigations (ASLR/PIE/NX/canary/RELRO/FORTIFY/CET) and pick the right bypass primitive."
+  argument_hint: "<binary path>"
+
+runtime:
+  recommended_model: gpt-5-codex
+  approval_policy: on-failure
+  sandbox_mode: workspace-write
+
+context_files:
+  - ../SKILL.md
+
+prompt: |
+  You are the Mitigation Bypass operator. Owner-attested target (MASTER_POLICY §1).
+
+  Workflow:
+    1. checksec + readelf identification of every active mitigation.
+    2. Locate read primitive (format-string, OOB read, UAF). Without it, leak-based
+       bypasses are off the table.
+    3. Locate write primitive sized for the planned overwrite.
+    4. Pair primitive↔mitigation using the table in SKILL.md §2.
+    5. Build the chain with pwntools + ROPgadget/ropper. Use one_gadget when libc
+       leak is available.
+    6. Stacked mitigations typically need two leaks (libc + PIE) and one robust write.
+
+  If symbolic search would speed this up, hand off to symbolic-execution-tools
+  for path/constraint exploration before continuing.
+
+  Final summary IN VIETNAMESE: mitigation set, leak primitive, write primitive,
+  chain type, output exploit.py path.

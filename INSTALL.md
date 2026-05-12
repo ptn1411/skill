@@ -44,6 +44,26 @@ Quét sâu RAM và phân tích thuật toán để trích xuất secret keys và
 Vá mã máy cấp độ chuyên sâu (Assembly Patching) để bẻ gãy mọi rào cản bản quyền (License Check) và thay đổi logic thực thi của ứng dụng.
 - **Cách dùng**: `python apply_patch.py target.exe --patch <OFFSET> <ORIGINAL> <PATCH>`
 
+### 10. [anti-debugging-techniques](./anti-debugging-techniques/)
+Phát hiện và bypass các tầng chống debug (ptrace, PEB, timing, exception, TLS callback) trước khi vá. Bắt buộc dùng trước `binary-patcher` với binary thương mại.
+- **Cách dùng**: tham chiếu skill — kết hợp ScyllaHide / Frida / LD_PRELOAD theo bảng phân loại trong SKILL.md.
+
+### 11. [binary-protection-bypass](./binary-protection-bypass/)
+Định danh và bypass mitigation ELF (ASLR, PIE, NX, canary, RELRO, FORTIFY, CET, MTE) khi patch chuẩn không vào.
+- **Cách dùng**: `checksec ./binary` → match primitive↔mitigation theo bảng SKILL.md §2 → build chain bằng pwntools.
+
+### 12. [vm-and-bytecode-reverse](./vm-and-bytecode-reverse/)
+Reverse engineer custom VM và bytecode interpreter (dispatcher → opcode table → disassembler). Cover .pyc/.NET CIL/JVM/Lua/WASM/EVM + VMProtect/Themida.
+- **Cách dùng**: locate dispatcher → walk handlers → write disassembler bằng template Python trong SKILL.md §3.
+
+### 13. [symbolic-execution-tools](./symbolic-execution-tools/)
+Symbolic execution với angr / Z3 / Unicorn / Qiling — tự động tìm input thỏa mãn license check thay vì brute force.
+- **Cách dùng**: `pip install angr claripy z3-solver` → script template trong SKILL.md §2.
+
+### 14. [android-apk-pentester](./android-apk-pentester/)
+Kiểm thử bảo mật Android APK/XAPK/APKS được ủy quyền: phân tích tĩnh, cài split APK, setup emulator root, cấu hình mitmproxy, và sinh Frida hooks phục vụ kiểm thử runtime.
+- **Cách dùng**: `python android-apk-pentester/scripts/analyze_apk.py app.apk --out output/apk-analysis`
+
 ---
 
 ## 🚀 Hướng dẫn cài đặt
@@ -97,6 +117,7 @@ Mỗi skill có manifest đa nền tảng trong `<skill>/agents/{codex,gemini,op
 | **Nuitka Decryptor** | Khôi phục 100% nguồn Python | Python (Nuitka) |
 | **Universal Keygen** | Phân tích thuật toán và tạo Keygen | Fernet, AES, Hex... |
 | **Binary Patcher** | Vá mã máy bẻ gãy mọi rào cản | EXE, DLL (C++, Delphi...) |
+| **Android APK Pentester** | Phân tích, cài đặt, intercept và kiểm thử runtime Android app | APK, XAPK, APKS |
 
 ---
 

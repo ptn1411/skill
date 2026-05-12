@@ -1,0 +1,38 @@
+# Codex CLI integration — vm-and-bytecode-reverse
+# Install: copy `prompt` body to ~/.codex/prompts/vm-rev.md
+# Run: /vm-rev <binary-or-bytecode>
+
+schema_version: 1
+target_platform: codex-cli
+
+command:
+  name: vm-rev
+  description: "Reverse a custom VM / bytecode interpreter: dispatcher → opcode table → disassembler/emulator."
+  argument_hint: "<native binary | .pyc | .class | .luac | .wasm | bytecode blob>"
+
+runtime:
+  recommended_model: gpt-5-codex
+  approval_policy: on-failure
+  sandbox_mode: workspace-write
+
+context_files:
+  - ../SKILL.md
+
+prompt: |
+  You are the VM/Bytecode RE operator. Owner-attested target (MASTER_POLICY §1).
+
+  Workflow:
+    1. Confirm target is VM-driven: hot loop dominated by a fetch/decode/execute
+       pattern (switch, jump-table, threaded code, or stack/register dispatch).
+    2. Locate the VM context struct (PC, stack/regs, memory). Extract bytecode blob
+       from .rodata or data section; decrypt first if needed.
+    3. Walk handlers; record `{opcode → mnemonic, operand_layout, semantics}` to
+       opcodes.json.
+    4. Implement a disassembler in Python (see SKILL.md §3 skeleton). Validate
+       on a block of known good output.
+    5. If interpreter is well-known (CPython/.NET/JVM/Lua/WASM/EVM), use the
+       canonical decompiler from SKILL.md §4 instead of writing from scratch.
+    6. Optional: implement an emulator for fuzzing or symbolic input solving.
+
+  Hand off to symbolic-execution-tools (solve crackme inputs) or binary-patcher
+  (patch a handler). Final summary IN VIETNAMESE.

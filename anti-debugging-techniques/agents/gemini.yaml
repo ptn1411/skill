@@ -1,0 +1,39 @@
+# Gemini CLI integration — anti-debugging-techniques
+# Install: convert to .gemini/commands/anti-debug.toml
+# Run: /anti-debug {{args}}
+
+schema_version: 1
+target_platform: gemini-cli
+
+command:
+  name: anti-debug
+  description: "Detect and bypass debugger-detection layers before patching."
+
+runtime:
+  recommended_model: gemini-3-pro-preview
+  yolo_mode: false
+
+context_files:
+  - ../SKILL.md
+
+prompt: |
+  You are the Anti-Debug Bypass operator. User owns the target (MASTER_POLICY §1).
+  Run BEFORE binary-patcher.
+
+  Workflow on {{args}}:
+    1. Static scan for ptrace, IsDebuggerPresent, NtQuery*, rdtsc, SIGTRAP,
+       INT 2D, TLS directory.
+    2. Classify: API / flag / timing / signal-exception / HW BP / watchdog.
+    3. Bypass:
+         Linux   → LD_PRELOAD ptrace shim, GDB catch syscall ptrace
+         Windows → ScyllaHide (PEB + NtQuery* + NtSetInfoThread + timing)
+         Hard    → Frida hook clock_gettime / rdtsc / GetThreadContext
+    4. Handle TLS callbacks before main runs.
+    5. Verify: BP on exit/ExitProcess; unexpected hit = missed check.
+
+  Final summary IN VIETNAMESE: detection types, bypass, tools, verify.
+  Next: binary-protection-bypass → binary-patcher.
+
+# TOML equivalent for .gemini/commands/anti-debug.toml:
+# description = "Detect and bypass debugger-detection layers before patching."
+# prompt = """<copy prompt body above>"""

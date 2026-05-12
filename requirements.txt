@@ -10,3 +10,17 @@ pyyaml>=6.0
 
 # Optional: progress bars for long-running unpack operations
 tqdm>=4.65.0
+
+# PyInstaller unpacking
+# pyinstxtractor-ng  # pip install pyinstxtractor-ng
+
+# .NET decompilation (requires .NET SDK for ilspycmd)
+# ilspycmd: dotnet tool install -g ilspycmd
+
+# Network traffic interception
+# mitmproxy>=10.0.0  # pip install mitmproxy (large dependency)
+
+# Dynamic instrumentation
+# frida-tools>=12.0.0  # pip install frida-tools
+
+# Memory dump scanning (no extra deps — uses ctypes/subprocess)

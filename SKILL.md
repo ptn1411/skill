@@ -30,10 +30,11 @@ This is the **Primary Brain** of the toolkit. It is designed to automatically ma
 | Phase | Action | Sub-Skill Used |
 |---|---|---|
 | **Phase 1: Recon** | Fingerprint binary and detect packers. | `binary-identifier` |
-| **Phase 2: Breach** | Unpack ASAR, decrypt Nuitka, or recover Sourcemaps. | `electron-builder-unpacker`, `nuitka-decryptor`, `javascript-deobfuscator` |
-| **Phase 3: Audit** | Scan for secrets, map IPC, and analyze logic. | `electron-app-analyzer`, `javascript-deobfuscator`, `writerpro-pentest` |
-| **Phase 4: Unlock** | Bypass license checks or inject custom code. | `binary-patcher`, `electron-builder-repacker` |
-| **Phase 5: Export** | Generate Keygen and export Source Package. | `writerpro-pentest`, `pentest-script-generator` |
+| **Phase 1.5: Mitigate** *(native only)* | Defeat anti-debug, then inventory ASLR/PIE/canary/RELRO so patches stick. | `anti-debugging-techniques`, `binary-protection-bypass` |
+| **Phase 2: Breach** | Unpack ASAR, decrypt Nuitka, reconstruct Nuitka source via IDA+PE, decompile .NET (de4dot + ilspycmd), decompile Java (CFR/Procyon/JADX), unpack PyInstaller, analyse Rust binaries, extract Tauri web assets, recover sourcemaps, or lift custom VM bytecode. | `electron-builder-unpacker`, `nuitka-decryptor`, `ida-nuitka-reconstructor`, `pyinstaller-unpacker`, `dotnet-decompiler`, `java-decompiler`, `rust-binary-analyzer`, `tauri-unpacker`, `javascript-deobfuscator`, `vm-and-bytecode-reverse` |
+| **Phase 3: Audit** | Scan for secrets, map IPC, analyze logic, intercept network traffic, solve license constraints. | `electron-app-analyzer`, `javascript-deobfuscator`, `network-interceptor`, `writerpro-pentest`, `symbolic-execution-tools` |
+| **Phase 4: Unlock** | Patch .NET IL bytecode, bypass license via Frida hooks, dump memory for secrets, inject custom code, or auto-derive bypass via solver. | `dotnet-patcher`, `frida-hooker`, `memory-dumper`, `binary-patcher`, `electron-builder-repacker`, `symbolic-execution-tools` |
+| **Phase 5: Export** | Extract license algorithms, generate keygen, export source package. | `dotnet-keygen`, `writerpro-pentest`, `pentest-script-generator` |
 
 ---
 

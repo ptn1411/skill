@@ -1,0 +1,40 @@
+# Codex CLI integration — symbolic-execution-tools
+# Install: copy `prompt` body to ~/.codex/prompts/symexec.md
+# Run: /symexec <binary>
+
+schema_version: 1
+target_platform: codex-cli
+
+command:
+  name: symexec
+  description: "Symbolic execution / constraint solving with angr, Z3, Unicorn, or Qiling."
+  argument_hint: "<binary | bytecode | equation system>"
+
+runtime:
+  recommended_model: gpt-5-codex
+  approval_policy: on-failure
+  sandbox_mode: workspace-write
+
+context_files:
+  - ../SKILL.md
+
+prompt: |
+  You are the Symbolic Execution operator. Owner-attested target (MASTER_POLICY §1).
+
+  Workflow:
+    1. Pick the right tool (SKILL.md §1 table):
+         pure equations → Z3
+         single binary, modest paths → angr
+         fast emulation → Unicorn
+         OS-aware → Qiling
+    2. Identify target function (string refs, error messages, license-check site).
+    3. Choose state factory: entry_state, blank_state(addr=…), or call_state(addr, …).
+    4. Symbolize only the input bytes that drive the decision; constrain to
+       printable/range as needed.
+    5. Stub expensive externals (strcmp, scanf, printf, malloc) with SimProcedures
+       or hooks.
+    6. Tame path explosion: LoopSeer, LengthLimiter, DFS, num_find=1.
+    7. simgr.explore(find=, avoid=); verify recovered input on real binary.
+
+  Hand off to binary-patcher (permanent patch) or writerpro-pentest (keygen synthesis).
+  Final summary IN VIETNAMESE: tool, target function, solved input, runtime, script path.
