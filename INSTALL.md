@@ -64,6 +64,18 @@ Symbolic execution với angr / Z3 / Unicorn / Qiling — tự động tìm inpu
 Kiểm thử bảo mật Android APK/XAPK/APKS được ủy quyền: phân tích tĩnh, cài split APK, setup emulator root, cấu hình mitmproxy, và sinh Frida hooks phục vụ kiểm thử runtime.
 - **Cách dùng**: `python android-apk-pentester/scripts/analyze_apk.py app.apk --out output/apk-analysis`
 
+### 15. [container-cloud-auditor](./container-cloud-auditor/)
+Audit Docker, Compose, Kubernetes, Terraform, and cloud configuration for risky defaults and exposed secrets.
+- **Cách dùng**: `python container-cloud-auditor/scripts/analyze_container_cloud.py . --out output/container-cloud-auditor`
+
+### 16. [sbom-supply-chain-auditor](./sbom-supply-chain-auditor/)
+Audit dependency manifests and lockfiles for SBOM extraction, risky install scripts, unpinned versions, remote dependency sources, and secret-like values.
+- **Cách dùng**: `python sbom-supply-chain-auditor/scripts/analyze_supply_chain.py . --out output/sbom-supply-chain-auditor`
+
+### 17. [orchestrator-plugin-sdk](./orchestrator-plugin-sdk/)
+Scaffold and validate new toolkit skills with the standard file layout, metadata, output contract, and orchestrator registration checklist.
+- **Cách dùng**: `python orchestrator-plugin-sdk/scripts/validate_skill_contract.py container-cloud-auditor`
+
 ---
 
 ## 🚀 Hướng dẫn cài đặt
@@ -118,6 +130,9 @@ Mỗi skill có manifest đa nền tảng trong `<skill>/agents/{codex,gemini,op
 | **Universal Keygen** | Phân tích thuật toán và tạo Keygen | Fernet, AES, Hex... |
 | **Binary Patcher** | Vá mã máy bẻ gãy mọi rào cản | EXE, DLL (C++, Delphi...) |
 | **Android APK Pentester** | Phân tích, cài đặt, intercept và kiểm thử runtime Android app | APK, XAPK, APKS |
+| **Container Cloud Auditor** | Audit cấu hình container/cloud | Docker, Compose, Kubernetes, Terraform |
+| **SBOM Supply Chain Auditor** | Audit dependency manifests và lockfiles | npm, pip, Maven, Gradle, Cargo, NuGet |
+| **Orchestrator Plugin SDK** | Scaffold và validate skill mới | Toolkit skills |
 
 ---
 

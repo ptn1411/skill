@@ -40,6 +40,9 @@ Các sub-skill phụ thuộc vào tooling **bên ngoài Python**. Cài trước 
 | **Android SDK Platform Tools** | android-apk-pentester (adb install, root, remount, device control) | Android Studio SDK Manager or `winget install Google.PlatformTools` |
 | **Android Emulator** | android-apk-pentester (AVD startup and lab device setup) | Android Studio SDK Manager |
 | **bundletool.jar** | android-apk-pentester (`.apks` install) | https://github.com/google/bundletool/releases; set `BUNDLETOOL_JAR` |
+| **Syft** | sbom-supply-chain-auditor | Optional external SBOM generation: https://github.com/anchore/syft |
+| **Grype** | sbom-supply-chain-auditor | Optional vulnerability matching from generated SBOM: https://github.com/anchore/grype |
+| **Trivy** | container-cloud-auditor, sbom-supply-chain-auditor | Optional config and dependency scanning: https://github.com/aquasecurity/trivy |
 
 ## Tự kiểm tra
 

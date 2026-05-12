@@ -1,0 +1,3 @@
+name: container-cloud-auditor
+description: Audit Docker, Compose, Kubernetes, Terraform, and cloud configuration for exposed services, privileged runtime settings, hardcoded secrets, and risky infrastructure defaults.
+entrypoint: SKILL.md

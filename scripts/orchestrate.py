@@ -177,6 +177,31 @@ def choose_breach_skill(target: Path, fp: dict) -> Optional[str]:
     return None
 
 
+def has_container_cloud_artifacts(target: Path) -> bool:
+    """Return True when target contains Docker, Kubernetes, or Terraform files."""
+    if target.is_file():
+        return target.name in {"Dockerfile", "docker-compose.yml", "docker-compose.yaml"} or target.suffix in {".tf", ".yaml", ".yml"}
+    names = {"Dockerfile", "docker-compose.yml", "docker-compose.yaml", "compose.yml", "compose.yaml"}
+    return any(p.name in names or p.suffix == ".tf" for p in target.rglob("*") if p.is_file())
+
+
+def has_supply_chain_artifacts(target: Path) -> bool:
+    """Return True when target contains dependency manifests or lockfiles."""
+    names = {
+        "package.json",
+        "package-lock.json",
+        "requirements.txt",
+        "pyproject.toml",
+        "pom.xml",
+        "build.gradle",
+        "Cargo.toml",
+        "Cargo.lock",
+        "packages.config",
+    }
+    paths = [target] if target.is_file() else target.rglob("*")
+    return any(p.is_file() and (p.name in names or p.suffix == ".csproj") for p in paths)
+
+
 # --- Phase runners -----------------------------------------------------------
 
 def run_electron_unpack(target: Path, out_dir: Path) -> PhaseResult:
@@ -507,6 +532,32 @@ def run_audit_generic(source_dir: Path, out_dir: Path) -> PhaseResult:
                       [PYTHON, str(script), str(source_dir), "--out", str(audit_out)])
 
 
+def run_container_cloud_audit(target: Path, out_dir: Path) -> PhaseResult:
+    """Run container-cloud-auditor on deployment artifacts."""
+    audit_out = out_dir / "container-cloud-auditor"
+    script = REPO_ROOT / "container-cloud-auditor" / "scripts" / "analyze_container_cloud.py"
+    phase = make_phase(
+        "audit:container-cloud",
+        "container-cloud-auditor",
+        [PYTHON, str(script), str(target), "--out", str(audit_out)],
+    )
+    phase.artifacts = [str(audit_out)]
+    return phase
+
+
+def run_supply_chain_audit(target: Path, out_dir: Path) -> PhaseResult:
+    """Run sbom-supply-chain-auditor on dependency manifests and lockfiles."""
+    audit_out = out_dir / "sbom-supply-chain-auditor"
+    script = REPO_ROOT / "sbom-supply-chain-auditor" / "scripts" / "analyze_supply_chain.py"
+    phase = make_phase(
+        "audit:supply-chain",
+        "sbom-supply-chain-auditor",
+        [PYTHON, str(script), str(target), "--out", str(audit_out)],
+    )
+    phase.artifacts = [str(audit_out)]
+    return phase
+
+
 def run_frida_license_bypass(target_name: str, out_dir: Path) -> PhaseResult:
     """Auto-generate Frida license_bypass hooks for any target."""
     frida_out = out_dir / "frida-bypass"
@@ -695,6 +746,24 @@ def execute_mission(target_arg: str, out_dir: Path, allow_unlock: bool, allow_ex
     elif source_dir and source_dir == dotnet_decompiled:
         # Already audited inside run_dotnet_decompile, note it
         pass
+
+    #   3d. Deployment and supply-chain audit on original/recovered source trees
+    audit_targets = []
+    if target_path and target_path.exists():
+        audit_targets.append(target_path)
+    if source_dir:
+        audit_targets.append(source_dir)
+
+    seen_audit_targets = set()
+    for audit_target in audit_targets:
+        key = str(audit_target.resolve())
+        if key in seen_audit_targets:
+            continue
+        seen_audit_targets.add(key)
+        if audit_target.exists() and has_container_cloud_artifacts(audit_target):
+            report.phases.append(run_container_cloud_audit(audit_target, out_dir))
+        if audit_target.exists() and has_supply_chain_artifacts(audit_target):
+            report.phases.append(run_supply_chain_audit(audit_target, out_dir))
 
     # Phase 4 — Unlock (fully automatic)
     if allow_unlock:
