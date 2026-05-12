@@ -1,0 +1,3 @@
+name: sbom-supply-chain-auditor
+description: Audit dependency manifests and lockfiles for SBOM extraction, risky install scripts, unpinned versions, remote dependency sources, and secret-like values.
+entrypoint: SKILL.md
