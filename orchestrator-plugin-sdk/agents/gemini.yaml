@@ -1,0 +1,3 @@
+name: orchestrator-plugin-sdk
+description: Scaffold and validate new toolkit skills with the standard file layout, metadata, output contract, and orchestrator registration checklist.
+entrypoint: SKILL.md
