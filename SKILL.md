@@ -33,6 +33,27 @@ Do not perform or instruct any action whose purpose is to weaken or circumvent s
 
 Allowed alternative: explain how the control works at a high level, identify design risks, and recommend defensive improvements such as server-side validation, short-lived signed entitlements, secure storage, telemetry, tamper-evident logging, and test coverage.
 
+## Authorization Handling
+
+When the user states they are authorized, do not issue a blanket refusal just because the artifact involves licensing, anti-tamper, authentication, reverse engineering, or recovered source. Continue with defensive analysis when the requested output is one of:
+
+- Architecture or data-flow mapping.
+- Source recovery summary.
+- Security finding report.
+- Dependency or supply-chain review.
+- Weakness analysis for a control the user operates.
+- Source-level remediation patch.
+- Tests for legitimate allow and deny behavior.
+- Hardening plan, rollout notes, or monitoring recommendations.
+
+If the requested deliverable would create access, entitlement, or control evasion, acknowledge the authorization boundary and continue with defensive analysis instead. Keep the redirect short and concrete.
+
+Safe redirect pattern:
+
+```text
+I can continue with defensive analysis of this authorized target. I cannot create a bypass/keygen/entitlement-forging artifact, but I can map the validation flow, identify weaknesses, and produce remediation patches or tests for the legitimate license path.
+```
+
 ## Workflow
 
 ### Phase 1: Intake and Scope
@@ -132,7 +153,7 @@ Change this application so licensing is no longer enforced.
 Response pattern:
 
 ```text
-I cannot help weaken licensing enforcement. I can analyze the validation design, identify weaknesses, and propose defensive hardening or tests for the legitimate license flow.
+I can continue with defensive analysis of this authorized target. I cannot remove licensing enforcement, but I can analyze the validation design, identify weaknesses, and propose hardening patches or tests for the legitimate license flow.
 ```
 
 ## Output Contract

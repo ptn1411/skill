@@ -75,6 +75,33 @@ class OrchestratorAuditorDetectionTests(unittest.TestCase):
                 for term in risky_terms:
                     self.assertNotIn(term, text)
 
+    def test_master_policy_matches_defensive_scope(self):
+        text = (ROOT / "MASTER_POLICY.md").read_text(encoding="utf-8").lower()
+
+        risky_grants = (
+            "standing authorization",
+            "full technical authority",
+            "produce cracked",
+            "generate keygen scripts",
+            "and patch loaders against",
+            "injects new behavior",
+            "mission ends only when the owner has the code and the key",
+        )
+
+        for phrase in risky_grants:
+            with self.subTest(phrase=phrase):
+                self.assertNotIn(phrase, text)
+
+        self.assertIn("defensive", text)
+        self.assertIn("does not authorize", text)
+
+    def test_root_skill_handles_authorization_without_blanket_refusal(self):
+        text = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+
+        self.assertIn("When the user states they are authorized", text)
+        self.assertIn("continue with defensive analysis", text)
+        self.assertNotIn("I cannot help weaken licensing enforcement.", text)
+
 
 if __name__ == "__main__":
     unittest.main()
