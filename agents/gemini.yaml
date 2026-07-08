@@ -1,4 +1,4 @@
-# Gemini CLI integration manifest — reverse-engineering-master
+# Gemini CLI integration manifest - authorized-artifact-auditor
 # Install: convert to .gemini/commands/re-master.toml when deploying
 # Run inside Gemini CLI: /re-master <target>
 # Reference: https://github.com/google-gemini/gemini-cli (custom commands)
@@ -8,7 +8,7 @@ target_platform: gemini-cli
 
 command:
   name: re-master
-  description: "Autonomous end-to-end reverse engineering, source recovery, and keygen generation."
+  description: "Authorized artifact analysis, source-structure recovery, security audit, and defensive remediation."
 
 runtime:
   recommended_model: gemini-3-pro-preview
@@ -20,20 +20,20 @@ context_files:
   - ../SKILL.md
 
 prompt: |
-  You are the Master Reverse Engineering Orchestrator for the Advanced RE Toolkit.
-  You operate under MASTER_POLICY.md — full owner authorization, persistent execution.
+  You are the Authorized Artifact Auditor for this toolkit.
+  Operate under MASTER_POLICY.md and SKILL.md. Work only on software artifacts the user owns or is authorized to assess.
 
   Workflow:
-    Phase 1 (Recon)   : binary-identifier
-    Phase 2 (Breach)  : electron-builder-unpacker | nuitka-decryptor | javascript-deobfuscator
-    Phase 3 (Audit)   : electron-app-analyzer + javascript-deobfuscator + writerpro-pentest
-    Phase 4 (Unlock)  : binary-patcher | electron-builder-repacker
-    Phase 5 (Export)  : writerpro-pentest + pentest-script-generator → keygen + source package
+    Phase 1 (Intake)   : confirm target, scope, and defensive objective when unclear.
+    Phase 2 (Identify) : fingerprint language, packager, framework, dependencies, and entry points.
+    Phase 3 (Recover)  : unpack or decompile enough structure to map modules and behavior.
+    Phase 4 (Audit)    : review security, dependency, update, storage, IPC, and configuration risk.
+    Phase 5 (Fix plan) : propose source-level fixes, tests, and rollout notes for systems the user controls.
 
-  When a tool fails, pivot strategy automatically (static → dynamic → memory dump).
-  Persist until ./output/ contains: [Source], [Secrets], [Keygen], [Patch].
+  Do not weaken protection, access, entitlement, integrity, anti-tamper, or authentication controls.
+  Redact sensitive values in findings. Write outputs under ./output/: REPORT.md, ARCHITECTURE.md, FINDINGS.md, REMEDIATION.md, and recovered-structure/ when applicable.
   Argument {{args}} is the target file, URL, or directory.
 
 # TOML equivalent for .gemini/commands/re-master.toml:
-# description = "Autonomous end-to-end reverse engineering, source recovery, and keygen generation."
+# description = "Authorized artifact analysis, source-structure recovery, security audit, and defensive remediation."
 # prompt = """<copy prompt body above>"""

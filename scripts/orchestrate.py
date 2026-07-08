@@ -1,32 +1,24 @@
 #!/usr/bin/env python3
 """
-orchestrate.py — Master RE Orchestrator runtime.
+orchestrate.py - Authorized artifact auditor runtime.
 
-Chains the toolkit's sub-skills end-to-end on an authorized target:
+Chains the toolkit's inspection sub-skills on an authorized target:
 
     Phase 1 (Recon)   binary-identifier
-    Phase 2 (Breach)  electron-builder-unpacker | nuitka-decryptor | javascript-deobfuscator
-    Phase 3 (Audit)   electron-app-analyzer + javascript-deobfuscator
-    Phase 4 (Unlock)  binary-patcher | electron-builder-repacker          [manual gate]
-    Phase 5 (Export)  writerpro-pentest + pentest-script-generator        [manual gate]
-
-The script is deliberately conservative for destructive phases (4, 5) — those
-require an explicit `--unlock` / `--export` flag because they modify binaries or
-emit keygen artifacts.
+    Phase 2 (Recover) electron-builder-unpacker | nuitka-decryptor | javascript-deobfuscator
+    Phase 3 (Audit)   electron-app-analyzer + dependency/configuration auditors
+    Phase 4 (Report)  write findings, artifacts, and remediation notes
 
 Usage (cross-platform):
-    python scripts/orchestrate.py <target> [--out DIR] [--unlock] [--export]
+    python scripts/orchestrate.py <target> [--out DIR]
     python scripts/orchestrate.py --help
 
 Examples:
-    # Auto recon + breach + audit on an Electron app folder
+    # Auto recon + recover + audit on an Electron app folder
     python scripts/orchestrate.py "C:/Program Files/MyApp"
 
     # Sourcemap recovery for a JS bundle URL
     python scripts/orchestrate.py https://example.com/assets/index.js.map
-
-    # Full mission with unlock + export gates
-    python scripts/orchestrate.py target.exe --unlock --export
 """
 
 from __future__ import annotations
@@ -155,8 +147,8 @@ def choose_breach_skill(target: Path, fp: dict) -> Optional[str]:
     if name.endswith(".js.map") or "://" in str(target):
         return "javascript-deobfuscator"
     if "Python (Nuitka)" in fp.get("languages", []) or "Nuitka (Onefile)" in fp.get("packers", []):
-        # Check if .encrypted files exist alongside → nuitka-decryptor
-        # Otherwise → ida-nuitka-reconstructor (compiled-only, no encryption)
+        # Check if .encrypted files exist alongside -> nuitka-decryptor
+        # Otherwise -> ida-nuitka-reconstructor (compiled-only, no encryption)
         parent = target.parent
         has_encrypted = any(parent.rglob("*.encrypted")) if parent.exists() else False
         return "nuitka-decryptor" if has_encrypted else "ida-nuitka-reconstructor"
@@ -223,7 +215,7 @@ def run_js_extract(url_or_path: str, out_dir: Path) -> PhaseResult:
 
 
 def run_ida_nuitka_reconstruct(target: Path, out_dir: Path) -> PhaseResult:
-    """Run the full ida-nuitka-reconstructor pipeline: extract → reconstruct."""
+    """Run the full ida-nuitka-reconstructor pipeline: extract -> reconstruct."""
     nuitka_out = out_dir / "nuitka-reconstructed"
     nuitka_out.mkdir(parents=True, exist_ok=True)
     strings_json = str(nuitka_out / "extracted_strings.json")
@@ -235,7 +227,7 @@ def run_ida_nuitka_reconstruct(target: Path, out_dir: Path) -> PhaseResult:
                          "--dump-raw", str(nuitka_out / "raw_strings.txt")])
 
     if phase1.returncode != 0:
-        phase1.notes.append("String extraction failed — check PE format")
+        phase1.notes.append("String extraction failed - check PE format")
         return phase1
 
     # Step 2: Reconstruct source
@@ -270,7 +262,7 @@ def run_dotnet_decompile(target: Path, out_dir: Path) -> PhaseResult:
                         [PYTHON, str(decompile_script), str(target), "--out", str(dotnet_out)])
 
     if phase1.returncode != 0:
-        phase1.notes.append("Decompilation failed — check .NET runtime / ilspycmd")
+        phase1.notes.append("Decompilation failed - check .NET runtime / ilspycmd")
         return phase1
 
     analyze_script = REPO_ROOT / "dotnet-decompiler" / "scripts" / "analyze_dotnet.py"
@@ -300,7 +292,7 @@ def run_pyinstaller_unpack(target: Path, out_dir: Path) -> PhaseResult:
                         [PYTHON, str(unpack_script), str(target), "--out", str(pyinst_out)])
 
     if phase1.returncode != 0:
-        phase1.notes.append("Unpack failed — check PyInstaller format")
+        phase1.notes.append("Unpack failed - check PyInstaller format")
         return phase1
 
     decompile_script = REPO_ROOT / "pyinstaller-unpacker" / "scripts" / "decompile_pyc.py"
@@ -329,14 +321,14 @@ def run_rust_analyze(target: Path, out_dir: Path) -> PhaseResult:
                        [PYTHON, str(script), str(target), "--out", str(rust_out)])
     phase.artifacts = [str(rust_out)]
 
-    # Check if Tauri was detected → auto-chain tauri-unpacker
+    # Check if Tauri was detected -> auto-chain tauri-unpacker
     info_json = rust_out / "rust_info.json"
     if info_json.exists():
         try:
             import json as _json
             info = _json.loads(info_json.read_text(encoding='utf-8'))
             if info.get('is_tauri'):
-                phase.notes.append("Tauri detected — will auto-chain tauri-unpacker")
+                phase.notes.append("Tauri detected - will auto-chain tauri-unpacker")
         except Exception:
             pass
 
@@ -443,78 +435,6 @@ def run_memory_scan(dump_file: str, out_dir: Path) -> PhaseResult:
                       [PYTHON, str(scan_script), dump_file, "--out", str(mem_out)])
 
 
-def run_frida_hook(target: str, template: str, out_dir: Path) -> PhaseResult:
-    """Generate and run Frida hooks from a template."""
-    frida_out = out_dir / "frida-results"
-    frida_out.mkdir(parents=True, exist_ok=True)
-
-    gen_script = REPO_ROOT / "frida-hooker" / "scripts" / "generate_hooks.py"
-    hook_js = frida_out / f"{template}.js"
-    phase1 = make_phase("unlock:generate", "frida-hooker",
-                        [PYTHON, str(gen_script), "--template", template, "--out", str(hook_js)])
-
-    if phase1.returncode != 0:
-        return phase1
-
-    run_script = REPO_ROOT / "frida-hooker" / "scripts" / "run_frida.py"
-    phase2 = make_phase("unlock:frida", "frida-hooker",
-                        [PYTHON, str(run_script), "--attach", target, "--script", str(hook_js),
-                         "--timeout", "30", "--out", str(frida_out)])
-
-    return PhaseResult(
-        name="unlock", skill="frida-hooker",
-        command=phase1.command + ["&&"] + phase2.command,
-        returncode=phase2.returncode,
-        stdout_tail=phase1.stdout_tail + "\n---\n" + phase2.stdout_tail,
-        stderr_tail=phase1.stderr_tail + "\n" + phase2.stderr_tail,
-        started_at=phase1.started_at,
-        duration_s=phase1.duration_s + phase2.duration_s,
-        artifacts=[str(hook_js), str(frida_out)],
-        notes=phase1.notes + phase2.notes,
-    )
-
-
-def run_dotnet_patch(target: Path, out_dir: Path) -> PhaseResult:
-    """Run dotnet-patcher: auto-patch license checks."""
-    patch_out = out_dir / "dotnet-patched"
-    patch_out.mkdir(parents=True, exist_ok=True)
-
-    patch_script = REPO_ROOT / "dotnet-patcher" / "scripts" / "patch_dotnet.py"
-    return make_phase("unlock:patch", "dotnet-patcher",
-                      [PYTHON, str(patch_script), str(target), "--auto", "--out", str(patch_out)])
-
-
-def run_dotnet_keygen(decompiled_dir: Path, out_dir: Path) -> PhaseResult:
-    """Run dotnet-keygen: extract algo + generate keygen."""
-    keygen_out = out_dir / "dotnet-keygen"
-    keygen_out.mkdir(parents=True, exist_ok=True)
-
-    extract_script = REPO_ROOT / "dotnet-keygen" / "scripts" / "extract_license_algo.py"
-    info_json = keygen_out / "license_info.json"
-    phase1 = make_phase("export:extract-algo", "dotnet-keygen",
-                        [PYTHON, str(extract_script), str(decompiled_dir), "--out", str(info_json)])
-
-    if phase1.returncode != 0:
-        phase1.notes.append("License algorithm extraction failed")
-        return phase1
-
-    gen_script = REPO_ROOT / "dotnet-keygen" / "scripts" / "generate_keygen.py"
-    phase2 = make_phase("export:keygen", "dotnet-keygen",
-                        [PYTHON, str(gen_script), str(info_json), "--out", str(keygen_out / "keygen.py")])
-
-    return PhaseResult(
-        name="export", skill="dotnet-keygen",
-        command=phase1.command + ["&&"] + phase2.command,
-        returncode=phase2.returncode,
-        stdout_tail=phase1.stdout_tail + "\n---\n" + phase2.stdout_tail,
-        stderr_tail=phase1.stderr_tail + "\n" + phase2.stderr_tail,
-        started_at=phase1.started_at,
-        duration_s=phase1.duration_s + phase2.duration_s,
-        artifacts=[str(info_json), str(keygen_out / "keygen.py")],
-        notes=phase1.notes + phase2.notes,
-    )
-
-
 def run_find_patch_targets(source_dir: Path, out_dir: Path) -> PhaseResult:
     """Scan decompiled source for license check methods (works on any .cs source)."""
     script = REPO_ROOT / "dotnet-patcher" / "scripts" / "find_patch_targets.py"
@@ -524,7 +444,7 @@ def run_find_patch_targets(source_dir: Path, out_dir: Path) -> PhaseResult:
 
 
 def run_audit_generic(source_dir: Path, out_dir: Path) -> PhaseResult:
-    """Run dotnet analyze_dotnet.py on any decompiled source — its regex patterns
+    """Run dotnet analyze_dotnet.py on any decompiled source - its regex patterns
     work on JS/Python too (API keys, tokens, URLs, base64 blobs)."""
     script = REPO_ROOT / "dotnet-decompiler" / "scripts" / "analyze_dotnet.py"
     audit_out = out_dir / "audit-results"
@@ -556,60 +476,6 @@ def run_supply_chain_audit(target: Path, out_dir: Path) -> PhaseResult:
     )
     phase.artifacts = [str(audit_out)]
     return phase
-
-
-def run_frida_license_bypass(target_name: str, out_dir: Path) -> PhaseResult:
-    """Auto-generate Frida license_bypass hooks for any target."""
-    frida_out = out_dir / "frida-bypass"
-    frida_out.mkdir(parents=True, exist_ok=True)
-
-    gen_script = REPO_ROOT / "frida-hooker" / "scripts" / "generate_hooks.py"
-    hook_js = frida_out / "license_bypass.js"
-    phase = make_phase("unlock:frida-gen", "frida-hooker",
-                       [PYTHON, str(gen_script), "--template", "license_bypass", "--out", str(hook_js)])
-
-    phase.notes.append(f"Hook script ready: {hook_js}")
-    phase.notes.append(f"Run: python frida-hooker/scripts/run_frida.py --attach \"{target_name}\" --script {hook_js}")
-    phase.artifacts = [str(hook_js)]
-    return phase
-
-
-def run_generic_keygen(source_dir: Path, out_dir: Path) -> PhaseResult:
-    """Extract license info and generate keygen from any decompiled source."""
-    keygen_out = out_dir / "keygen"
-    keygen_out.mkdir(parents=True, exist_ok=True)
-
-    # Step 1: Try extract_license_algo (works on .cs but also picks up strings in .py/.js)
-    extract_script = REPO_ROOT / "dotnet-keygen" / "scripts" / "extract_license_algo.py"
-    info_json = keygen_out / "license_info.json"
-    phase1 = make_phase("export:extract-algo", "dotnet-keygen",
-                        [PYTHON, str(extract_script), str(source_dir), "--out", str(info_json)])
-
-    if phase1.returncode != 0 or not info_json.exists():
-        # Fallback: generate a serial-checksum keygen template
-        gen_script = REPO_ROOT / "dotnet-keygen" / "scripts" / "generate_keygen.py"
-        phase2 = make_phase("export:keygen-fallback", "dotnet-keygen",
-                            [PYTHON, str(gen_script), "--template", "serial-checksum", "--out",
-                             str(keygen_out / "keygen.py")])
-        phase2.notes.append("Used fallback serial-checksum template (algo extraction failed)")
-        return phase2
-
-    # Step 2: Generate keygen from extracted info
-    gen_script = REPO_ROOT / "dotnet-keygen" / "scripts" / "generate_keygen.py"
-    phase2 = make_phase("export:keygen", "dotnet-keygen",
-                        [PYTHON, str(gen_script), str(info_json), "--out", str(keygen_out / "keygen.py")])
-
-    return PhaseResult(
-        name="export", skill="dotnet-keygen",
-        command=phase1.command + ["&&"] + phase2.command,
-        returncode=phase2.returncode,
-        stdout_tail=phase1.stdout_tail + "\n---\n" + phase2.stdout_tail,
-        stderr_tail=phase1.stderr_tail + "\n" + phase2.stderr_tail,
-        started_at=phase1.started_at,
-        duration_s=phase1.duration_s + phase2.duration_s,
-        artifacts=[str(info_json), str(keygen_out / "keygen.py")],
-        notes=phase1.notes + phase2.notes,
-    )
 
 
 def find_recovered_source(out_dir: Path) -> Path | None:
@@ -648,7 +514,12 @@ def run_nuitka_extract(target: Path, out_dir: Path) -> PhaseResult:
 
 # --- Mission driver ----------------------------------------------------------
 
-def execute_mission(target_arg: str, out_dir: Path, allow_unlock: bool, allow_export: bool) -> MissionReport:
+def execute_mission(
+    target_arg: str,
+    out_dir: Path,
+    include_remediation_note: bool = False,
+    include_report_package_note: bool = False,
+) -> MissionReport:
     started = datetime.now(timezone.utc)
     report = MissionReport(target=target_arg, started_at=started.isoformat(), out_dir=str(out_dir))
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -656,7 +527,7 @@ def execute_mission(target_arg: str, out_dir: Path, allow_unlock: bool, allow_ex
     is_url = "://" in target_arg
     target_path = Path(target_arg) if not is_url else None
 
-    # Phase 1 — Recon (only meaningful for local paths)
+    # Phase 1 - Recon (only meaningful for local paths)
     if target_path and target_path.exists() and target_path.is_file():
         recon, fp = fingerprint_binary(target_path)
         report.phases.append(recon)
@@ -664,7 +535,7 @@ def execute_mission(target_arg: str, out_dir: Path, allow_unlock: bool, allow_ex
     else:
         report.fingerprint = {"note": "skipped (URL or directory target)"}
 
-    # Phase 1.5 — Mitigate (advisory for native targets)
+    # Phase 1.5 - Mitigate (advisory for native targets)
     fp_dict = report.fingerprint if isinstance(report.fingerprint, dict) else {}
     is_native = bool(fp_dict.get("languages") or fp_dict.get("packers"))
     if is_native:
@@ -674,17 +545,17 @@ def execute_mission(target_arg: str, out_dir: Path, allow_unlock: bool, allow_ex
             command=[],
             returncode=0,
             stdout_tail=(
-                "Native target — review before patching:\n"
-                "  - anti-debugging-techniques/SKILL.md  (clear ptrace/PEB/timing/TLS checks)\n"
-                "  - binary-protection-bypass/SKILL.md   (inventory ASLR/PIE/canary/RELRO)\n"
-                "Use ScyllaHide (Win) or LD_PRELOAD shim (Linux) before binary-patcher.\n"
+                "Native target - review before patching:\n"
+                "  - inventory compiler, packer, and platform hardening flags\n"
+                "  - document entitlement, update, storage, and integrity boundaries\n"
+                "  - prefer source-level remediation for systems you control\n"
             ),
             stderr_tail="",
             started_at=datetime.now(timezone.utc).isoformat(),
             duration_s=0.0,
         ))
 
-    # Phase 2 — Breach (auto-select)
+    # Phase 2 - Breach (auto-select)
     if is_url or (target_arg.endswith(".js.map")):
         report.phases.append(run_js_extract(target_arg, out_dir))
     elif target_path:
@@ -716,14 +587,14 @@ def execute_mission(target_arg: str, out_dir: Path, allow_unlock: bool, allow_ex
                 skill="(none)",
                 command=[],
                 returncode=0,
-                stdout_tail="No matching breach skill — manual triage required.",
+                stdout_tail="No matching breach skill - manual triage required.",
                 stderr_tail="",
                 started_at=datetime.now(timezone.utc).isoformat(),
                 duration_s=0.0,
                 notes=["See TOOLS.md for tool-assisted strategies (dnSpy, x64dbg, Ghidra)."],
             ))
 
-    # Phase 3 — Audit (auto for ALL target types)
+    # Phase 3 - Audit (auto for ALL target types)
     source_dir = find_recovered_source(out_dir)
     breach_skill = None
     if target_path:
@@ -765,59 +636,38 @@ def execute_mission(target_arg: str, out_dir: Path, allow_unlock: bool, allow_ex
         if audit_target.exists() and has_supply_chain_artifacts(audit_target):
             report.phases.append(run_supply_chain_audit(audit_target, out_dir))
 
-    # Phase 4 — Unlock (fully automatic)
-    if allow_unlock:
-        target_name = target_path.name if target_path else target_arg
-        unlocked = False
+    # Phase 4 - Defensive remediation advisory.
+    if include_remediation_note:
+        report.phases.append(PhaseResult(
+            name="remediation",
+            skill="(advisory)",
+            command=[],
+            returncode=0,
+            stdout_tail=(
+                "Runtime modification is not part of this defensive workflow.\n"
+                "Review the recovered source and findings, then implement source-level fixes "
+                "for systems you control."
+            ),
+            stderr_tail="",
+            started_at=datetime.now(timezone.utc).isoformat(),
+            duration_s=0.0,
+        ))
 
-        #   4a. .NET → auto-patch IL bytecode
-        if dotnet_decompiled.exists() and target_path and target_path.exists():
-            report.phases.append(run_dotnet_patch(target_path, out_dir))
-            unlocked = True
-
-        #   4b. Frida license bypass hooks (universal — works on any target)
-        report.phases.append(run_frida_license_bypass(target_name, out_dir))
-        unlocked = True
-
-        #   4c. Frida anti-debug bypass (if native target)
-        if is_native:
-            frida_out = out_dir / "frida-antidebug"
-            frida_out.mkdir(parents=True, exist_ok=True)
-            gen_script = REPO_ROOT / "frida-hooker" / "scripts" / "generate_hooks.py"
-            hook_js = frida_out / "anti_debug_bypass.js"
-            phase = make_phase("unlock:antidebug", "frida-hooker",
-                               [PYTHON, str(gen_script), "--template", "anti_debug_bypass",
-                                "--out", str(hook_js)])
-            phase.artifacts = [str(hook_js)]
-            report.phases.append(phase)
-
-    # Phase 5 — Export (fully automatic keygen)
-    if allow_export:
-        exported = False
-
-        #   5a. .NET → dedicated keygen pipeline
-        if dotnet_decompiled.exists():
-            report.phases.append(run_dotnet_keygen(dotnet_decompiled, out_dir))
-            exported = True
-
-        #   5b. Any other source → generic keygen (extract algo + template)
-        if not exported and source_dir:
-            report.phases.append(run_generic_keygen(source_dir, out_dir))
-            exported = True
-
-        #   5c. Fallback — generate serial-checksum template
-        if not exported:
-            gen_script = REPO_ROOT / "dotnet-keygen" / "scripts" / "generate_keygen.py"
-            keygen_out = out_dir / "keygen"
-            keygen_out.mkdir(parents=True, exist_ok=True)
-            phase = make_phase("export:keygen-fallback", "dotnet-keygen",
-                               [PYTHON, str(gen_script), "--template", "serial-checksum",
-                                "--out", str(keygen_out / "keygen.py")])
-            phase.notes.append("No source recovered — generated default serial-checksum keygen template")
-            report.phases.append(phase)
+    # Phase 5 - Defensive report packaging advisory.
+    if include_report_package_note:
+        report.phases.append(PhaseResult(
+            name="report-package",
+            skill="(advisory)",
+            command=[],
+            returncode=0,
+            stdout_tail="Use REPORT.md and mission.json as the export package for defensive review.",
+            stderr_tail="",
+            started_at=datetime.now(timezone.utc).isoformat(),
+            duration_s=0.0,
+        ))
 
     # Inventory deliverables
-    deliverables: dict = {"source": [], "secrets": [], "keygen": [], "patch": []}
+    deliverables: dict = {"source": [], "findings": [], "remediation": [], "reports": []}
     for path in out_dir.rglob("*"):
         if not path.is_file():
             continue
@@ -826,11 +676,11 @@ def execute_mission(target_arg: str, out_dir: Path, allow_unlock: bool, allow_ex
         if lower.endswith((".js", ".ts", ".jsx", ".tsx")) or "source" in rel:
             deliverables["source"].append(rel)
         if "secret" in lower or "endpoint" in lower or "finding" in lower:
-            deliverables["secrets"].append(rel)
-        if "keygen" in lower:
-            deliverables["keygen"].append(rel)
-        if "patch" in lower or "cracked" in lower:
-            deliverables["patch"].append(rel)
+            deliverables["findings"].append(rel)
+        if "remediation" in lower or "fix" in lower:
+            deliverables["remediation"].append(rel)
+        if lower in {"report.md", "mission.json"}:
+            deliverables["reports"].append(rel)
     report.deliverables = deliverables
 
     report.finished_at = datetime.now(timezone.utc).isoformat()
@@ -861,7 +711,7 @@ def write_report(report: MissionReport, out_dir: Path) -> None:
     for p in report.phases:
         status = "OK" if p.returncode == 0 else f"FAIL ({p.returncode})"
         lines.extend([
-            f"### {p.name} — {p.skill} [{status}] ({p.duration_s:.1f}s)",
+            f"### {p.name} - {p.skill} [{status}] ({p.duration_s:.1f}s)",
             "```",
             "$ " + " ".join(p.command) if p.command else "(no command)",
             "```",
@@ -889,14 +739,17 @@ def write_report(report: MissionReport, out_dir: Path) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Master RE Orchestrator — chain RE sub-skills on an authorized target.",
+        description="Authorized Artifact Auditor - recover structure, audit risk, and write defensive reports.",
     )
     parser.add_argument("target", help="File path, directory, or sourcemap URL")
     parser.add_argument("--out", default="output", help="Output directory (default: ./output)")
-    parser.add_argument("--unlock", action="store_true", help="Run Phase 4 (binary patching / code injection notes)")
-    parser.add_argument("--export", action="store_true", help="Run Phase 5 (keygen / vuln-script export notes)")
-    parser.add_argument("--require-tools", action="store_true", help="Verify external tooling (node, asar, upx) before starting")
+    parser.add_argument("--require-tools", action="store_true", help="Verify core external tooling before starting")
     args = parser.parse_args()
+
+    is_url = "://" in args.target
+    if not is_url and not Path(args.target).exists():
+        print(f"[!] Target does not exist: {args.target}", file=sys.stderr)
+        return 2
 
     if args.require_tools:
         missing = [t for t in ("python", "node", "npx") if shutil.which(t) is None]
@@ -905,7 +758,7 @@ def main() -> int:
             return 2
 
     out_dir = Path(args.out).resolve()
-    report = execute_mission(args.target, out_dir, args.unlock, args.export)
+    report = execute_mission(args.target, out_dir)
     write_report(report, out_dir)
 
     failed = [p for p in report.phases if p.returncode != 0]
