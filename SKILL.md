@@ -54,6 +54,46 @@ Safe redirect pattern:
 I can continue with defensive analysis of this authorized target. I cannot create a bypass/keygen/entitlement-forging artifact, but I can map the validation flow, identify weaknesses, and produce remediation patches or tests for the legitimate license path.
 ```
 
+## Assessment Dispatch (auto-routing)
+
+This skill is the master entry point. Given a target, infer its kind and route to the
+right sub-skill. Two ways to dispatch:
+
+**A. Deterministic dispatcher** — one command classifies the target and runs the fitting skill:
+
+```powershell
+python scripts\assess.py <target> [--out output] [--dry-run] [-- <extra skill flags>]
+```
+
+| Target looks like | Routes to | Purpose |
+|---|---|---|
+| IPv4 / CIDR / range (`10.0.0.5`, `192.168.1.0/24`) or bare hostname | **network-scanner** | Nmap host/port/service scan |
+| `http(s)://` URL of a web app | **web-app-scanner** | Headers/TLS/CORS recon; `sqli_test.py` for SQLi |
+| `http(s)://…​.js.map` sourcemap URL | **orchestrate.py** (javascript-deobfuscator) | JS source recovery |
+| `winlogs` / `eventlog` / `localhost` | **windows-log-hunter** | Windows Event Log threat hunt |
+| Existing file / directory (binary, app bundle, manifest) | **orchestrate.py** | Artifact fingerprint → recover → audit |
+
+Use `--dry-run` to preview the routing decision before executing. Force a kind with
+`--type {network|web|winlog|artifact|jsmap}` when auto-detection is ambiguous.
+
+**B. Reason it out yourself** — when the request does not map to a single command, pick the
+skill from the table below and follow its `SKILL.md`. Confirm authorization first (MASTER_POLICY §1).
+
+| Kind of check | Skill |
+|---|---|
+| Network / port / service exposure | [network-scanner](network-scanner/SKILL.md) |
+| Web app (headers, TLS, CORS, SQLi, discovery) | [web-app-scanner](web-app-scanner/SKILL.md) |
+| Windows host log / intrusion hunt (blue team) | [windows-log-hunter](windows-log-hunter/SKILL.md) |
+| Traffic capture / API & license protocol | [network-interceptor](network-interceptor/SKILL.md) |
+| Binary / app artifact recovery + audit | run `scripts/orchestrate.py` (auto-selects the RE sub-skill) |
+| Container / cloud / IaC config | [container-cloud-auditor](container-cloud-auditor/SKILL.md) |
+| Dependencies / SBOM / supply chain | [sbom-supply-chain-auditor](sbom-supply-chain-auditor/SKILL.md) |
+| Turn a confirmed finding into a PoC/verify script | [pentest-script-generator](antigravity-kit/pentest-script-generator/SKILL.md) |
+
+Note: in Claude Code, each sub-skill also auto-triggers from its own `description` — describing
+the task plainly ("scan this host", "check this site for SQLi", "hunt my Windows logs") is enough
+to activate the right one. `assess.py` is the single-command path when you already have a target.
+
 ## Workflow
 
 ### Phase 1: Intake and Scope

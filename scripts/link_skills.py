@@ -11,7 +11,8 @@ CONFIG_SKILLS = Path("C:/Users/NAM/.gemini/config/skills").resolve()
 # List of skills to link from the workspace to the global config skills folder
 skills_to_link = [
     # (source_in_workspace, target_in_config)
-    (".", "pentest-script-generator"), # The main/root skill (authorized-artifact-auditor)
+    (".", "authorized-artifact-auditor"), # The main/root skill (authorized-artifact-auditor)
+    ("antigravity-kit/pentest-script-generator", "pentest-script-generator"), # Pentest script generator skill
     ("android-apk-pentester", "android-apk-pentester"),
     ("anti-debugging-techniques", "anti-debugging-techniques"),
     ("binary-identifier", "binary-identifier"),
@@ -31,6 +32,9 @@ skills_to_link = [
     ("master-unlock", "master-unlock"),
     ("memory-dumper", "memory-dumper"),
     ("network-interceptor", "network-interceptor"),
+    ("network-scanner", "network-scanner"),
+    ("windows-log-hunter", "windows-log-hunter"),
+    ("web-app-scanner", "web-app-scanner"),
     ("nuitka-decryptor", "nuitka-decryptor"),
     ("orchestrator-plugin-sdk", "orchestrator-plugin-sdk"),
     ("pyinstaller-unpacker", "pyinstaller-unpacker"),
