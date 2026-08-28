@@ -54,6 +54,7 @@ skills_to_link = [
     ("network-scanner", "network-scanner"),
     ("windows-log-hunter", "windows-log-hunter"),
     ("web-app-scanner", "web-app-scanner"),
+    ("web-logic-auditor", "web-logic-auditor"),
     ("license-robustness-audit", "license-robustness-audit"),
     ("nuitka-decryptor", "nuitka-decryptor"),
     ("orchestrator-plugin-sdk", "orchestrator-plugin-sdk"),
