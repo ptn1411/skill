@@ -12,7 +12,9 @@ Safety notes (a previous version deleted the whole workspace — do not regress)
   * Hard guard: refuse to remove anything whose real path is the workspace or
     lives inside it.
 """
+import argparse
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -100,14 +102,14 @@ def remove_dest(dest_path: Path) -> None:
     subprocess.run(["cmd", "/c", "rmdir", "/s", "/q", str(dest_path)], check=True)
 
 
-def link_into(config_root: Path) -> bool:
-    """Junction every listed skill into config_root. Returns True on any failure."""
+def sync_into(config_root: Path, mode: str = "copy") -> bool:
+    """Sync every listed skill into config_root using either copy or junction."""
     config_root = config_root.resolve()
     if not config_root.exists():
         print(f"[-] Config skills directory not found, skipping: {config_root}")
         return False
 
-    print(f"[+] Syncing skills from {WORKSPACE} to {config_root}...\n")
+    print(f"[+] Syncing skills from {WORKSPACE} to {config_root} (mode={mode})...\n")
     failed = False
 
     for src_rel, dest_name in skills_to_link:
@@ -131,18 +133,53 @@ def link_into(config_root: Path) -> bool:
                 failed = True
                 continue
 
-        print(f"    - Creating junction: {src_path} -> {dest_path}")
-        try:
-            subprocess.run(["cmd", "/c", "mklink", "/J", str(dest_path), str(src_path)], check=True)
-            print("    [+] Linked successfully.")
-        except Exception as e:
-            print(f"    [!] Junction creation failed: {e}")
-            failed = True
+        if mode == "junction":
+            print(f"    - Creating junction: {src_path} -> {dest_path}")
+            try:
+                subprocess.run(["cmd", "/c", "mklink", "/J", str(dest_path), str(src_path)], check=True)
+                print("    [+] Linked successfully.")
+            except Exception as e:
+                print(f"    [!] Junction creation failed: {e}")
+                failed = True
+        else:
+            print(f"    - Copying directory: {src_path} -> {dest_path}")
+            try:
+                if src_rel == ".":
+                    dest_path.mkdir(parents=True, exist_ok=True)
+                    # Copy root files
+                    for root_file in ["SKILL.md", "MASTER_POLICY.md", "INSTALL.md", "TOOLS.md", "requirements.txt"]:
+                        f_src = src_path / root_file
+                        if f_src.is_file():
+                            shutil.copy2(f_src, dest_path / root_file)
+                    # Copy selected root dirs
+                    for root_dir in ["scripts", "agents", "docs", "tests"]:
+                        d_src = src_path / root_dir
+                        if d_src.is_dir():
+                            shutil.copytree(d_src, dest_path / root_dir, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+                else:
+                    shutil.copytree(
+                        src_path,
+                        dest_path,
+                        ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".git")
+                    )
+                print("    [+] Copied successfully.")
+            except Exception as e:
+                print(f"    [!] Copy failed: {e}")
+                failed = True
 
     return failed
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description="Link or copy skills to config roots.")
+    parser.add_argument(
+        "--mode",
+        choices=["copy", "junction"],
+        default="copy",
+        help="Mode of installation: 'copy' (real directories, recommended for Antigravity/Gemini on Windows) or 'junction' (mklink /J)",
+    )
+    args = parser.parse_args()
+
     if not any(root.exists() for root in CONFIG_ROOTS):
         print("[!] No config skills directory found: "
               + ", ".join(str(r) for r in CONFIG_ROOTS), file=sys.stderr)
@@ -151,15 +188,16 @@ def main() -> int:
     failed = False
     for root in CONFIG_ROOTS:
         print(f"\n{'='*70}\n[ROOT] {root}\n{'='*70}")
-        failed = link_into(root) or failed
+        failed = sync_into(root, mode=args.mode) or failed
 
     if failed:
-        print("\n[!] Some links failed. Please check permissions or run from a standard cmd prompt.")
+        print("\n[!] Some skills failed to install. Please check permissions or run from a standard cmd prompt.")
         return 1
 
-    print("\n[+] All skills linked into every config root! Restart/refresh your Gemini and Claude sessions.")
+    print("\n[+] All skills installed into every config root! Restart/refresh your Gemini and Claude sessions.")
     return 0
 
 
 if __name__ == "__main__":
     sys.exit(main())
+
