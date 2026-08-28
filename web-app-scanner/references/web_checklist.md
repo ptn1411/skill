@@ -2,12 +2,29 @@
 
 A lightweight OWASP-aligned checklist for authorized web assessments.
 
+## Attack surface (covered by subdomain_enum.py / scan_all.py)
+- [ ] Enumerate subdomains (crt.sh + subfinder, optional DNS brute) and identify web-alive hosts.
+- [ ] Subdomain takeover — dangling CNAME to an unclaimed GitHub Pages/S3/Heroku/Azure/Fastly/Shopify service (`--takeover`).
+- [ ] Scan **every** live subdomain, not just the apex — `scan_all.py example.com --active --crawl 1 --authorized`.
+
 ## Recon (covered by web_recon.py)
 - [ ] Security headers: CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy.
 - [ ] Cookies: Secure, HttpOnly, SameSite on session cookies.
 - [ ] TLS ≥ 1.2, valid certificate, HSTS with adequate max-age.
 - [ ] CORS: no `*` or reflected Origin combined with credentials.
 - [ ] Tech disclosure: Server / X-Powered-By / framework version banners.
+
+## Active checks (covered by vuln_checks.py via `web_recon.py --active`)
+- [ ] Exposed VCS/config: `/.git/HEAD`, `/.git/config`, `/.env`, `/.svn`, Spring `/actuator/env`, backups.
+- [ ] Reflected XSS — params reflected unencoded into HTML.
+- [ ] Open redirect — `redirect`/`next`/`url`/`return` params sending `Location` off-site.
+- [ ] Path traversal / LFI — `file`/`path`/`include` params returning `/etc/passwd` or `win.ini`.
+- [ ] Directory listing / autoindex.
+- [ ] Header injection / CRLF response splitting — param value breaks into a new response header.
+- [ ] SSTI — `{{a*b}}` / `${a*b}` / `<%= a*b %>` evaluated server-side.
+- [ ] SSRF — url-taking param fetches internal/metadata (169.254.169.254); verify blind SSRF with an OOB callback.
+- [ ] Advanced CORS — null origin, arbitrary subdomain, prefix/suffix trust combined with credentials (via `web_recon.py`).
+- [ ] Use `--crawl DEPTH` so these run on discovered endpoints, not just the entry URL.
 
 ## Injection
 - [ ] **SQLi** — test each parameter (sqli_test.py / sqlmap). Fix: parameterized queries, ORM binding, least-privilege DB user.

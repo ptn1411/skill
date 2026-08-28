@@ -25,6 +25,7 @@ Only test sites you own or are explicitly authorized to assess (MASTER_POLICY.md
 
 import argparse
 import json
+import re
 import shutil
 import socket
 import ssl
@@ -32,11 +33,11 @@ import subprocess
 import sys
 from http.cookies import SimpleCookie
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin, urldefrag
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 
-UA = "web-app-scanner/1.0 (authorized-recon)"
+UA = "web-app-scanner/2.0 (authorized-recon)"
 
 # header -> (severity, advice) when MISSING
 SECURITY_HEADERS = {
@@ -135,20 +136,90 @@ def check_tls(host: str, port: int = 443) -> list[dict]:
 
 
 def check_cors(url: str) -> list[dict]:
-    evil = "https://evil.example.com"
-    status, headers, err = fetch(url, extra_headers={"Origin": evil})
-    if err:
-        return []
-    h = lower_headers(headers)
-    acao = h.get("access-control-allow-origin", "")
-    acac = h.get("access-control-allow-credentials", "")
+    """Advanced CORS: reflection, null origin, and subdomain/prefix/suffix trust bypasses."""
+    host = urlparse(url).hostname or ""
+    # (origin_to_send, human_label)
+    probes = [
+        ("https://evil.example.com", "arbitrary origin reflected"),
+        ("null", "null origin trusted"),
+        (f"https://evil.{host}", "arbitrary subdomain trusted"),
+        (f"https://{host}.evil.example.com", "suffix trust bypass"),
+        (f"https://{host}evil.example.com", "prefix/substring trust bypass"),
+        ("http://" + host, "insecure http origin trusted"),
+    ]
     findings = []
-    if acao == evil or acao == "*":
-        sev = "high" if (acao == evil and acac.lower() == "true") else "medium"
-        findings.append({"severity": sev, "category": "cors",
-                         "title": "Permissive CORS",
-                         "detail": f"ACAO reflects/allows origin ({acao}); credentials={acac or 'n/a'}."})
+    seen = set()
+    for origin, label in probes:
+        _, headers, err = fetch(url, extra_headers={"Origin": origin})
+        if err:
+            continue
+        h = lower_headers(headers)
+        acao = h.get("access-control-allow-origin", "")
+        acac = h.get("access-control-allow-credentials", "").lower()
+        reflected = acao == origin or (origin == "null" and acao == "null")
+        wildcard = acao == "*"
+        if not (reflected or wildcard):
+            continue
+        creds = acac == "true"
+        if reflected and creds:
+            sev = "high"
+        elif reflected or (wildcard and creds):
+            sev = "medium"
+        else:
+            sev = "low"
+        title = "Permissive CORS — " + (label if reflected else "wildcard ACAO")
+        if title in seen:
+            continue
+        seen.add(title)
+        findings.append({"severity": sev, "category": "cors", "title": title,
+                         "detail": f"ACAO={acao!r} for Origin={origin!r}; credentials={acac or 'n/a'}."})
     return findings
+
+
+_HREF_RE = re.compile(r"""(?:href|src|action)\s*=\s*['"]([^'"#]+)['"]""", re.I)
+
+
+def _fetch_body(url: str, timeout: int = 15) -> str:
+    req = Request(url, headers={"User-Agent": UA})
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    try:
+        with urlopen(req, timeout=timeout,
+                     context=ctx if url.lower().startswith("https") else None) as resp:
+            ctype = resp.headers.get("Content-Type", "")
+            if "html" not in ctype.lower():
+                return ""
+            return resp.read(400_000).decode("utf-8", "replace")
+    except Exception:  # noqa
+        return ""
+
+
+def crawl(base_url: str, depth: int = 1, max_pages: int = 40) -> list[str]:
+    """BFS same-host link discovery. Returns URLs found (params-first ordering)."""
+    host = urlparse(base_url).netloc
+    seen = {base_url}
+    ordered = [base_url]
+    frontier = [(base_url, 0)]
+    while frontier and len(seen) < max_pages:
+        current, d = frontier.pop(0)
+        if d >= depth:
+            continue
+        body = _fetch_body(current)
+        for raw in _HREF_RE.findall(body):
+            link = urldefrag(urljoin(current, raw))[0]
+            p = urlparse(link)
+            if p.scheme not in ("http", "https") or p.netloc != host:
+                continue
+            if link not in seen:
+                seen.add(link)
+                ordered.append(link)
+                frontier.append((link, d + 1))
+                if len(seen) >= max_pages:
+                    break
+    # URLs carrying query params are the interesting active-test surface
+    ordered.sort(key=lambda u: (0 if urlparse(u).query else 1))
+    return ordered
 
 
 def run_tool(name: str, cmd: list[str], out_file: Path) -> dict | None:
@@ -177,11 +248,12 @@ def to_markdown(url: str, status, findings: list[dict], tools: list[dict]) -> st
         lines.append("**Issues:** " + "  ".join(
             f"{k}: {c[k]}" for k in sorted(c, key=lambda s: SEV_ORDER.get(s, 9))))
         lines.append("")
-    lines.append("| Severity | Category | Finding | Detail |")
-    lines.append("|---|---|---|---|")
+    lines.append("| Severity | Category | Finding | Detail | URL |")
+    lines.append("|---|---|---|---|---|")
     for f in sorted(findings, key=lambda x: SEV_ORDER.get(x["severity"], 9)):
         detail = str(f["detail"]).replace("|", "\\|")[:120]
-        lines.append(f"| {f['severity']} | {f['category']} | {f['title']} | {detail} |")
+        u = str(f.get("url", "")).replace("|", "\\|")[:80]
+        lines.append(f"| {f['severity']} | {f['category']} | {f['title']} | {detail} | {u} |")
     lines.append("")
     if tools:
         lines.append("## External tool output")
@@ -201,6 +273,13 @@ def main() -> int:
     ap.add_argument("--out", default="output/web")
     ap.add_argument("--nuclei", action="store_true", help="Run nuclei if installed.")
     ap.add_argument("--ffuf", metavar="WORDLIST", help="Run ffuf content discovery with this wordlist.")
+    ap.add_argument("--active", action="store_true",
+                    help="Run non-destructive active vuln checks (exposed files, XSS, redirect, LFI).")
+    ap.add_argument("--crawl", type=int, default=0, metavar="DEPTH",
+                    help="Crawl same-host links to DEPTH and test discovered URLs (implies wider --active surface).")
+    ap.add_argument("--max-pages", type=int, default=40, help="Crawl page cap.")
+    ap.add_argument("--authorized", action="store_true",
+                    help="Confirm authorization (required for --active).")
     ap.add_argument("--check", action="store_true", help="Report which optional tools are available.")
     args = ap.parse_args()
 
@@ -229,6 +308,30 @@ def main() -> int:
     if parsed.scheme == "https":
         findings += check_tls(parsed.hostname, parsed.port or 443)
     findings += check_cors(args.url)
+
+    # --- Active, non-destructive vulnerability checks (authorized only) ---
+    if args.active or args.crawl:
+        if not args.authorized:
+            print("[!] --active / --crawl send probes to the target. Re-run with --authorized.",
+                  file=sys.stderr)
+            return 2
+        try:
+            import vuln_checks
+        except ImportError as e:
+            print(f"[!] vuln_checks module unavailable: {e}", file=sys.stderr)
+            return 1
+        targets = [args.url]
+        if args.crawl:
+            targets = crawl(args.url, depth=args.crawl, max_pages=args.max_pages)
+            print(f"[*] Crawled {len(targets)} URL(s); running active checks ...")
+        seen_keys = set()
+        for t in targets:
+            for f in vuln_checks.run_active(t):
+                key = (f.get("category"), f.get("title"), f.get("url"))
+                if key in seen_keys:
+                    continue
+                seen_keys.add(key)
+                findings.append(f)
 
     tools = []
     if args.nuclei:
