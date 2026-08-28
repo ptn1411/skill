@@ -280,6 +280,7 @@ def main() -> int:
     ap.add_argument("--max-pages", type=int, default=40, help="Crawl page cap.")
     ap.add_argument("--authorized", action="store_true",
                     help="Confirm authorization (required for --active).")
+    ap.add_argument("--ssrf-callback", help="OAST/collaborator URL for blind-SSRF confirmation during --active.")
     ap.add_argument("--check", action="store_true", help="Report which optional tools are available.")
     args = ap.parse_args()
 
@@ -326,7 +327,7 @@ def main() -> int:
             print(f"[*] Crawled {len(targets)} URL(s); running active checks ...")
         seen_keys = set()
         for t in targets:
-            for f in vuln_checks.run_active(t):
+            for f in vuln_checks.run_active(t, args.ssrf_callback):
                 key = (f.get("category"), f.get("title"), f.get("url"))
                 if key in seen_keys:
                     continue

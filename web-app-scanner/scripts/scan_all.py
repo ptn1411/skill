@@ -51,7 +51,7 @@ def run_subdomains(domain: str, out: Path, brute: str | None, authorized: bool,
 
 
 def scan_host(sub: dict, out: Path, active: bool, authorized: bool,
-              crawl: int, nuclei: bool) -> dict:
+              crawl: int, nuclei: bool, ssrf_callback: str | None = None) -> dict:
     host = sub["host"]
     url = sub["url"]
     host_dir = out / "hosts" / _safe_name(host)
@@ -62,6 +62,8 @@ def scan_host(sub: dict, out: Path, active: bool, authorized: bool,
             cmd += ["--crawl", str(crawl)]
         if authorized:
             cmd.append("--authorized")
+        if ssrf_callback:
+            cmd += ["--ssrf-callback", ssrf_callback]
     if nuclei:
         cmd.append("--nuclei")
     try:
@@ -121,6 +123,7 @@ def main() -> int:
     ap.add_argument("--crawl", type=int, default=0, metavar="DEPTH", help="Crawl depth per host.")
     ap.add_argument("--brute", metavar="WORDLIST", help="DNS brute wordlist for subdomain discovery.")
     ap.add_argument("--nuclei", action="store_true", help="Run nuclei per host if installed.")
+    ap.add_argument("--ssrf-callback", help="OAST/collaborator URL for blind-SSRF confirmation.")
     ap.add_argument("--authorized", action="store_true", help="Confirm scope (required for --active/--brute).")
     ap.add_argument("--max-subs", type=int, default=25, help="Cap number of hosts scanned (safety).")
     ap.add_argument("--workers", type=int, default=6, help="Concurrent hosts.")
@@ -154,7 +157,8 @@ def main() -> int:
     print(f"[*] Scanning {len(alive)} host(s) with {args.workers} worker(s) ...")
     results = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as ex:
-        futs = [ex.submit(scan_host, s, out, args.active, args.authorized, args.crawl, args.nuclei)
+        futs = [ex.submit(scan_host, s, out, args.active, args.authorized, args.crawl,
+                          args.nuclei, args.ssrf_callback)
                 for s in alive]
         for fut in concurrent.futures.as_completed(futs):
             r = fut.result()

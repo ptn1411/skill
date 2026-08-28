@@ -62,7 +62,7 @@ python web-app-scanner\scripts\subdomain_enum.py example.com --out output\subs
 ```
 
 - Passive by default: **crt.sh** Certificate Transparency + **subfinder** (if installed). Low-impact, but note crt.sh receives the target domain name.
-- Add `--takeover` to flag **dangling-CNAME subdomain takeover** (CNAME points to a decommissioned GitHub Pages / S3 / Heroku / Azure / Fastly / Shopify / … service with an unclaimed fingerprint).
+- Add `--takeover` to flag **dangling-CNAME subdomain takeover** — CNAME points to a decommissioned service (GitHub Pages, S3, Heroku, Azure, Fastly, Shopify, CloudFront, Vercel, Netlify, Tumblr, WordPress, Tilda, Help Scout, …) with an unclaimed-resource fingerprint; also reports stale DNS verification tokens (`_github-pages-challenge`, `asuid`, `_dnsauth`, …).
 - Add DNS brute force (active — sends DNS queries to the target zone, needs `--authorized`):
 
 ```powershell
@@ -97,6 +97,7 @@ python web-app-scanner\scripts\web_recon.py https://app.local --active --crawl 1
 ```
 
 - Requires `--authorized` (sends probes to the target). Every check is detection-only: benign markers, no data dumped, no state changed.
+- **SSRF** probes AWS IMDSv1 plus decimal/hex/IPv6-mapped encodings (defeat naive IP filters), Azure/GCP metadata, and `file://`. For blind SSRF, add `--ssrf-callback https://<your-oast>/` to fire an out-of-band probe you then verify on your collaborator.
 - `--crawl DEPTH` discovers URLs (params-first); `--max-pages` caps the crawl.
 - Run one URL directly with `vuln_checks.py "<url>" --authorized` for a quick single-endpoint check.
 

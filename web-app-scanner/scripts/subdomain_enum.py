@@ -142,8 +142,29 @@ TAKEOVER_FINGERPRINTS = [
     ("Pantheon", "pantheonsite.io", _re.compile(r"The gods are wise|404 error unknown site", _re.I)),
     ("Readme.io", "readme.io", _re.compile(r"Project doesnt exist", _re.I)),
     ("Ghost", "ghost.io", _re.compile(r"The thing you were looking for is no longer here", _re.I)),
+    ("AWS/CloudFront", "cloudfront.net", _re.compile(r"The request could not be satisfied", _re.I)),
+    ("Vercel", "vercel.app", _re.compile(r"The deployment could not be found|DEPLOYMENT_NOT_FOUND", _re.I)),
+    ("Netlify", "netlify.app", _re.compile(r"Not Found - Request ID|no such site", _re.I)),
+    ("Tumblr", "domains.tumblr.com", _re.compile(r"Whatever you were looking for doesn't currently exist", _re.I)),
+    ("WordPress", "wordpress.com", _re.compile(r"Do you want to register .*\.wordpress\.com", _re.I)),
+    ("Tilda", "tilda.ws", _re.compile(r"Please renew your subscription", _re.I)),
+    ("Help Scout", "helpscoutdocs.com", _re.compile(r"No settings were found for this company", _re.I)),
+    ("Desk", "desk.com", _re.compile(r"Please try again or try Desk\.com free", _re.I)),
 ]
 _CNAME_RE = _re.compile(r"canonical name\s*=\s*([A-Za-z0-9._-]+)", _re.I)
+# Stale DNS verification tokens left after a service was decommissioned (takeover hint).
+_VERIFICATION_TAGS = ("_github-pages-challenge", "asuid.", "_dnsauth", "_amazonses",
+                      "google-site-verification", "_acme-challenge")
+
+
+def get_txt(host: str) -> list[str]:
+    """Return TXT record strings via nslookup (best-effort)."""
+    try:
+        r = subprocess.run(["nslookup", "-type=TXT", host],
+                           capture_output=True, text=True, timeout=10)
+    except Exception:  # noqa
+        return []
+    return _re.findall(r'text\s*=\s*"([^"]*)"', r.stdout or "", _re.I)
 
 
 def get_cname(host: str) -> str | None:
@@ -183,10 +204,14 @@ def check_takeover(host: str) -> dict | None:
             except Exception:  # noqa
                 continue
             if sig.search(body):
+                detail = f"CNAME -> {cname}; unclaimed-service fingerprint matched."
+                tags = [t for host_txt in get_txt(host) for t in _VERIFICATION_TAGS
+                        if t in host_txt or t in host]
+                if tags:
+                    detail += f" Stale verification token(s): {', '.join(sorted(set(tags)))}."
                 return {"severity": "high", "category": "subdomain-takeover",
                         "title": f"Potential {service} subdomain takeover",
-                        "detail": f"CNAME -> {cname}; unclaimed-service fingerprint matched.",
-                        "cname": cname, "service": service}
+                        "detail": detail, "cname": cname, "service": service}
     return None
 
 
