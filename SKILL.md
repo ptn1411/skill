@@ -76,6 +76,22 @@ python scripts\assess.py <target> [--out output] [--dry-run] [-- <extra skill fl
 Use `--dry-run` to preview the routing decision before executing. Force a kind with
 `--type {network|web|winlog|artifact|jsmap}` when auto-detection is ambiguous.
 
+`assess.py` runs ONE fitting skill. To run several child skills in sequence and get a
+single consolidated report, use the **chained orchestrator**:
+
+```powershell
+python scripts\full_assess.py <target> [--out output] [--profile service]
+```
+
+| Target | Chain it runs |
+|---|---|
+| IP / CIDR / host | network-scanner → (auto-detect web ports) → web-app-scanner recon on each → consolidated `output/assessment/REPORT.md` |
+| Web URL | web-app-scanner recon → network-scanner on the host → consolidated report |
+| Artifact / sourcemap | delegates to `orchestrate.py` (which already chains the RE sub-skills) |
+
+Intrusive SQLi is never auto-run — the chain is read-only recon; run `sqli_test.py --authorized`
+separately on any parameterised endpoint it surfaces.
+
 **B. Reason it out yourself** — when the request does not map to a single command, pick the
 skill from the table below and follow its `SKILL.md`. Confirm authorization first (MASTER_POLICY §1).
 
