@@ -32,8 +32,9 @@ This skill performs **read-only reconnaissance**. It does not exploit, brute-for
 ## Prerequisites (Windows)
 
 1. Install Nmap for Windows (bundles **Npcap**, required for raw packet scans):
-   - Download from https://nmap.org/download.html (installer includes Npcap), or
-   - `winget install Insecure.Nmap`
+   - **Recommended:** download the latest installer from https://nmap.org/download.html and run it **as Administrator** (the Npcap driver needs elevation).
+   - Avoid `winget install Insecure.Nmap` for now — its manifest points at a stale 7.80 URL and fails with a download-size error.
+   - Without Npcap, Nmap still works via TCP connect scan (`-sT`); you lose SYN scan and OS detection.
 2. Default install path: `C:\Program Files (x86)\Nmap\nmap.exe`. The wrapper auto-detects PATH and this path.
 3. **Run PowerShell as Administrator** for `-sS` (SYN scan), OS detection (`-O`), and raw-packet host discovery. Without admin, Nmap falls back to TCP connect scan (`-sT`), which still works.
 4. Python 3 for the parser (only Python stdlib is used — no extra install).

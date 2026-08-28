@@ -68,8 +68,10 @@ def check(nmap: str | None) -> int:
     print("[*] network-scanner environment check")
     if not nmap:
         print("[!] nmap NOT found.")
-        print("    Install: winget install Insecure.Nmap")
-        print("    or download https://nmap.org/download.html (includes Npcap).")
+        print("    Install (recommended): download the latest installer from")
+        print("      https://nmap.org/download.html  and run it AS ADMINISTRATOR")
+        print("      (it bundles Npcap, whose driver needs elevation).")
+        print("    Note: 'winget install Insecure.Nmap' is currently broken (stale 7.80 URL).")
         return 1
     print(f"[+] nmap found: {nmap}")
     try:
