@@ -1,6 +1,6 @@
 ---
 name: network-scanner
-description: "Run authorized network reconnaissance with Nmap on Windows (or Linux). Host discovery, port/service/version scanning, OS detection, and safe NSE scripts, parsed into a defensive findings report."
+description: "Run authorized network reconnaissance with Nmap on Windows (or Linux). Host discovery, port/service/version scanning, OS detection, and safe NSE scripts, parsed into a severity-ranked defensive findings report (exposed services, CVEs from vuln/vulners NSE, weak TLS/SSH, anonymous/default credentials, EOL versions)."
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 ---
 
@@ -98,8 +98,18 @@ python network-scanner\scripts\parse_nmap.py output\nmap\scan.xml --out output\n
 ```
 
 Produces:
-- `output/nmap/FINDINGS.md` — hosts, open ports, services, versions, notable exposures (RDP/SMB/Telnet/DB ports, EOL services).
-- `output/nmap/findings.json` — structured results for downstream skills.
+- `output/nmap/FINDINGS.md` — hosts, open ports, services, versions, plus a **severity-ranked Findings** section.
+- `output/nmap/findings.json` — structured results (including the derived `findings[]`) for downstream skills.
+
+The parser derives findings from the scan (best results with `--profile vuln` or `safe-scripts`):
+- **Exposed services** — classified by risk (cleartext FTP/Telnet, RDP/VNC, exposed databases, SMB).
+- **CVEs** — pulls `CVE-…` IDs from `vuln`/`vulners` NSE output; `VULNERABLE` states → critical/high.
+- **Weak TLS/SSL** — SSLv3 / TLS 1.0–1.1 / RC4 / EXPORT / DES / MD5 / low cipher grade.
+- **Weak SSH** — arcfour / CBC / DH group1 / ssh-dss.
+- **Default / anonymous credentials** — `ftp-anon`, `*-default-accounts`, brute-found creds.
+- **EOL / known-bad versions** — e.g. vsftpd 2.3.4 backdoor, OpenSSH < 7, Apache 2.2, IIS ≤ 6, PHP 5.
+
+> To populate CVE/TLS/SSH/cred findings, run NSE: `--profile vuln` or `--profile safe-scripts`.
 
 ---
 
