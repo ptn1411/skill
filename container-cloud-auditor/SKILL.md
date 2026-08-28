@@ -15,6 +15,16 @@ Use for authorized review of container and cloud deployment artifacts in recover
 2. Review `findings.json` and `REPORT.md`.
 3. Chain findings into remediation or pentest report generation.
 
+## Coverage
+
+Files are auto-classified (Dockerfile / Compose / Kubernetes / Terraform) so each rule applies in the right context. ~30 rules across:
+
+- **Dockerfile** — `:latest`/unpinned base, `USER root` / no non-root USER, remote `ADD`, pipe-to-shell installs, secrets in `ENV`/`ARG`, missing `HEALTHCHECK`.
+- **Compose / containers** — `privileged`, host networking, added capabilities (`SYS_ADMIN`/`ALL`), mounted `docker.sock`, `:latest` images.
+- **Kubernetes** — `hostNetwork`/`hostPID`/`hostIPC`, `hostPath`, `allowPrivilegeEscalation`, `runAsNonRoot: false`, `readOnlyRootFilesystem: false`, dangerous capabilities, `automountServiceAccountToken`, `LoadBalancer` exposure, missing resource limits / securityContext.
+- **Terraform / cloud** — public S3 ACL, `0.0.0.0/0` ingress, wildcard IAM (`*` / `*:*`), encryption disabled, `publicly_accessible`.
+- **Secrets (any file)** — AWS/Google keys, private-key blocks, Slack tokens, hardcoded credentials.
+
 ## Outputs
 
 - `findings.json`

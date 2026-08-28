@@ -57,6 +57,93 @@ def finding(
     }
 
 
+# Curated known-malicious npm typosquat package names (historical incidents).
+KNOWN_MALICIOUS = {
+    "crossenv", "cross-env.js", "babelcli", "ffmepg", "gruntcli", "jquey",
+    "mariadb", "mssql-node", "mssql.js", "mysqljs", "nodecaffe", "nodefabric",
+    "node-fabric", "nodeffmpeg", "nodemailer-js", "nodemailer.js", "nodesqlite",
+    "node-sqlite", "node-tkinter", "sqlite.js", "sqliter", "sqlserver", "loadsh",
+    "fabric-js", "shadound", "smb", "tensorflowjs", "openvpn",
+}
+# Popular packages used to flag edit-distance-1 typosquats.
+POPULAR_NPM = {
+    "react", "lodash", "express", "request", "axios", "chalk", "commander",
+    "debug", "moment", "async", "bluebird", "underscore", "jquery", "webpack",
+    "vue", "angular", "typescript", "eslint", "jest", "mocha", "dotenv", "uuid",
+    "glob", "yargs", "colors", "node-fetch", "ws", "redis", "mongoose", "pg",
+    "mysql", "sequelize", "cors", "body-parser", "passport", "jsonwebtoken",
+    "bcrypt", "nodemailer", "socket.io", "cross-env", "next", "webpack-cli",
+}
+POPULAR_PYPI = {
+    "requests", "numpy", "pandas", "flask", "django", "urllib3", "setuptools",
+    "pillow", "scipy", "boto3", "six", "pytest", "click", "jinja2", "sqlalchemy",
+    "cryptography", "certifi", "idna", "wheel", "pyyaml", "beautifulsoup4",
+    "matplotlib", "scikit-learn", "tensorflow", "torch", "fastapi", "aiohttp",
+}
+# License identifiers that carry copyleft / usage risk for redistribution.
+RISKY_LICENSES = re.compile(r"\b(AGPL|GPL-2|GPL-3|GPLv2|GPLv3|SSPL|CC-BY-NC|WTFPL|UNLICENSED)\b", re.I)
+
+
+def levenshtein(a: str, b: str) -> int:
+    if a == b:
+        return 0
+    if not a or not b:
+        return len(a) or len(b)
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        cur = [i]
+        for j, cb in enumerate(b, 1):
+            cur.append(min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (ca != cb)))
+        prev = cur
+    return prev[-1]
+
+
+def check_dep_name(name: str, version: str, rel: Path | str, ecosystem: str) -> list[dict]:
+    """Typosquat, known-malicious, and dependency-confusion heuristics for one dependency."""
+    results = []
+    base = name.lower().lstrip("@").split("/")[-1]
+    popular = POPULAR_NPM if ecosystem == "npm" else POPULAR_PYPI
+    if base in KNOWN_MALICIOUS:
+        results.append(finding("SC-010", "critical", ecosystem, "Known-malicious package name",
+                               rel, 1, f"{name}: {version}",
+                               "This name matches a historical malware typosquat — remove and verify."))
+    elif base not in popular:
+        for good in popular:
+            if abs(len(base) - len(good)) <= 1 and levenshtein(base, good) == 1:
+                results.append(finding("SC-011", "medium", ecosystem, "Possible typosquat dependency",
+                                       rel, 1, f"{name} (near '{good}')",
+                                       f"Name is one edit from popular package '{good}' — confirm it is intended."))
+                break
+    # Dependency confusion: scoped/internal-looking name that may resolve from the public registry.
+    if ecosystem == "npm" and name.startswith("@"):
+        results.append(finding("SC-012", "medium", "npm", "Scoped package — dependency-confusion risk",
+                               rel, 1, name,
+                               "Ensure this scope resolves only from your private registry (.npmrc/publishConfig)."))
+    return results
+
+
+def scan_lockfile(path: Path, rel: Path | str) -> list[dict]:
+    """npm lockfile: flag entries missing integrity hashes (tamper risk)."""
+    try:
+        data = json.loads(path.read_text(encoding="utf-8", errors="ignore"))
+    except json.JSONDecodeError as exc:
+        return [finding("SC-000", "low", "npm", "Malformed lockfile", rel, exc.lineno, str(exc),
+                        "Regenerate the lockfile.")]
+    results = []
+    packages = data.get("packages") or data.get("dependencies") or {}
+    missing = 0
+    for key, meta in packages.items():
+        if not key or not isinstance(meta, dict):
+            continue
+        if meta.get("resolved") and not meta.get("integrity"):
+            missing += 1
+    if missing:
+        results.append(finding("SC-013", "medium", "npm", "Lockfile entries missing integrity hash",
+                               rel, 1, f"{missing} package(s) without integrity",
+                               "Regenerate the lockfile so every entry has an integrity hash."))
+    return results
+
+
 def scan_package_json(path: Path, rel: Path | str) -> list[dict]:
     try:
         data = json.loads(path.read_text(encoding="utf-8", errors="ignore"))
@@ -69,13 +156,24 @@ def scan_package_json(path: Path, rel: Path | str) -> list[dict]:
         if name in scripts:
             results.append(finding("SC-001", "medium", "npm", "Package install script present", rel, 1, f"{name}: {scripts[name]}", "Review install-time code execution before trusting this package."))
 
+    lic = data.get("license") or data.get("licenses")
+    lic_text = json.dumps(lic) if isinstance(lic, (list, dict)) else str(lic or "")
+    if not lic:
+        results.append(finding("SC-008", "low", "license", "No license declared", rel, 1, "license: (missing)", "Declare a license; missing licenses block safe redistribution."))
+    elif RISKY_LICENSES.search(lic_text):
+        results.append(finding("SC-009", "medium", "license", "Copyleft / restrictive license", rel, 1, f"license: {lic_text}", "Review license obligations before redistribution."))
+
     for section in ("dependencies", "devDependencies", "optionalDependencies"):
         for dep, version in data.get(section, {}).items():
             version_text = str(version)
             if version_text in {"latest", "*"} or version_text.startswith(("^", "~")):
                 results.append(finding("SC-002", "low", "npm", "Floating npm dependency version", rel, 1, f"{dep}: {version_text}", "Pin exact versions for reproducible builds."))
             if re.search(r"^(http|https|git\+)", version_text, re.I):
-                results.append(finding("SC-007", "medium", "npm", "Remote npm dependency source", rel, 1, f"{dep}: {version_text}", "Pin remote dependencies to immutable commits or trusted registries."))
+                sev = "medium" if re.search(r"#[0-9a-f]{7,40}$", version_text, re.I) else "high"
+                results.append(finding("SC-007", sev, "npm", "Remote npm dependency source", rel, 1, f"{dep}: {version_text}", "Pin remote dependencies to an immutable commit hash or a trusted registry."))
+            if version_text.startswith("file:"):
+                results.append(finding("SC-014", "low", "npm", "Local file dependency", rel, 1, f"{dep}: {version_text}", "Local path deps are unverifiable in CI — confirm this is intended."))
+            results.extend(check_dep_name(dep, version_text, rel, "npm"))
     return results
 
 
@@ -89,6 +187,11 @@ def scan_requirements(path: Path, rel: Path | str) -> list[dict]:
             results.append(finding("SC-003", "low", "python", "Unpinned Python requirement", rel, idx, line, "Pin package versions with hashes for repeatable installs."))
         if re.search(r"(http|https|git\+)", stripped, re.I):
             results.append(finding("SC-004", "medium", "python", "Remote dependency source", rel, idx, line, "Verify remote dependency integrity and pin commits."))
+        m = re.match(r"^([A-Za-z0-9._-]+)", stripped)
+        if m and not stripped.startswith(("-r ", "--", "http", "git+")):
+            name = m.group(1)
+            version = stripped[len(name):]
+            results.extend(check_dep_name(name, version, rel, "pypi"))
     return results
 
 
@@ -106,6 +209,8 @@ def scan_file(path: Path, root: Path) -> list[dict]:
     rel = path.relative_to(root) if root.is_dir() else path.name
     if path.name == "package.json":
         return scan_package_json(path, rel)
+    if path.name == "package-lock.json":
+        return scan_lockfile(path, rel)
     if path.name == "requirements.txt":
         return scan_requirements(path, rel)
     return scan_text_manifest(path, rel)
