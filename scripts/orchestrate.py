@@ -512,6 +512,94 @@ def run_nuitka_extract(target: Path, out_dir: Path) -> PhaseResult:
     return phase
 
 
+# --- Phase 3e: dynamic evidence (auto) + guided next steps -------------------
+
+def _find_files(roots: list[Path], suffixes: tuple[str, ...], name_globs: tuple[str, ...] = ()) -> list[Path]:
+    hits: list[Path] = []
+    for root in roots:
+        if not root or not root.exists():
+            continue
+        it = [root] if root.is_file() else root.rglob("*")
+        for p in it:
+            if not p.is_file():
+                continue
+            if p.suffix.lower() in suffixes or any(p.match(g) for g in name_globs):
+                hits.append(p)
+    return hits
+
+
+def auto_dynamic_evidence(target_path: Path | None, out_dir: Path, report: MissionReport) -> None:
+    """Auto-run DEFENSIVE analysis on any evidence already on disk:
+    network captures (HAR) and process memory dumps. No live interaction."""
+    roots = [p for p in (target_path, out_dir) if p]
+
+    # network-interceptor: analyse an existing capture (never auto-captures live).
+    caps = _find_files(roots, (".har",), ("captured*.json", "*flow*.json"))
+    if caps:
+        report.phases.append(run_network_analyze(caps[0], out_dir, har_file=str(caps[0])))
+
+    # memory-dumper: scan an existing dump (never auto-dumps a live process).
+    dumps = _find_files(roots, (".dmp", ".dump", ".raw", ".mem"))
+    if dumps:
+        report.phases.append(run_memory_scan(str(dumps[0]), out_dir))
+
+
+def write_guidance(target_arg: str, fp: dict, out_dir: Path, ran_capture: bool, ran_dump: bool) -> Path:
+    """Emit GUIDANCE.md: for skills that need a live process / external tools /
+    manual setup, print exact commands for the USER to run. Circumvention skills
+    (keygen/patch/bypass/repack) are deliberately excluded per MASTER_POLICY."""
+    langs = " ".join(fp.get("languages", [])) if isinstance(fp, dict) else ""
+    packers = " ".join(fp.get("packers", [])) if isinstance(fp, dict) else ""
+    is_native = bool((isinstance(fp, dict) and (fp.get("languages") or fp.get("packers"))))
+
+    L = ["# Guided Next Steps (defensive)", "",
+         "Steps the orchestrator cannot fully automate because they need a running",
+         "process, live traffic, or extra tooling. Run them yourself on the authorized",
+         "target; each is read-only / analysis-oriented.", ""]
+
+    L.append("## Dynamic evidence")
+    if not ran_capture:
+        L += ["- **Capture app traffic** (network-interceptor) — needs the app running through a proxy:",
+              "  ```bash",
+              "  python network-interceptor/scripts/capture_traffic.py --port 8080 --duration 120 --out captured.har",
+              "  ```",
+              "  Then re-run the orchestrator; it auto-analyses the HAR."]
+    else:
+        L.append("- Network capture found and analysed automatically. ✔")
+    if not ran_dump:
+        L += ["- **Dump a process & scan for secrets** (memory-dumper) — needs the target process running:",
+              "  ```bash",
+              "  python memory-dumper/scripts/dump_process.py --name <proc>.exe --out proc.dmp",
+              "  python memory-dumper/scripts/scan_memory.py proc.dmp --out output/memory-analysis",
+              "  ```"]
+    else:
+        L.append("- Memory dump found and scanned automatically. ✔")
+
+    if is_native:
+        L += ["", "## Native-binary analysis (as applicable)",
+              f"_Fingerprint: languages=[{langs}] packers=[{packers}]_",
+              "- **Anti-debug detection** (anti-debugging-techniques) — review the SKILL.md checklist against the binary.",
+              "- **Mitigation audit** (binary-protection-bypass) — identify ASLR/NX/CET/canary posture for the hardening report.",
+              "- **Dynamic tracing** (frida-hooker) — needs the process running; generate a *tracing* hook (not a bypass):",
+              "  ```bash",
+              "  python frida-hooker/scripts/generate_hooks.py --list        # see templates",
+              "  python frida-hooker/scripts/run_frida.py --help             # attach/spawn tracing",
+              "  ```",
+              "- **Constraint solving** (symbolic-execution-tools) — needs angr/z3; use for input-reachability analysis.",
+              "- **Custom VM / bytecode** (vm-and-bytecode-reverse) — if the binary is an interpreter shell."]
+
+    L += ["", "## Not automated — defensive boundary",
+          "Per MASTER_POLICY §2, the toolkit does not auto-produce circumvention. The",
+          "following are excluded from the automatic flow: **master-unlock, dotnet-keygen,",
+          "binary-patcher, electron-builder-repacker**. For an authorized target, prefer the",
+          "defensive alternative: map the validation/entitlement flow, document weaknesses,",
+          "and write source-level hardening + tests for the legitimate path."]
+
+    path = out_dir / "GUIDANCE.md"
+    path.write_text("\n".join(L) + "\n", encoding="utf-8")
+    return path
+
+
 # --- Mission driver ----------------------------------------------------------
 
 def execute_mission(
@@ -635,6 +723,22 @@ def execute_mission(
             report.phases.append(run_container_cloud_audit(audit_target, out_dir))
         if audit_target.exists() and has_supply_chain_artifacts(audit_target):
             report.phases.append(run_supply_chain_audit(audit_target, out_dir))
+
+    #   3e. Dynamic evidence (auto) + guided next steps.
+    phases_before = len(report.phases)
+    auto_dynamic_evidence(target_path, out_dir, report)
+    dynamic_skills = {p.skill for p in report.phases[phases_before:]}
+    ran_capture = "network-interceptor" in dynamic_skills
+    ran_dump = "memory-dumper" in dynamic_skills
+    guidance_path = write_guidance(target_arg, report.fingerprint, out_dir, ran_capture, ran_dump)
+    report.phases.append(PhaseResult(
+        name="guided", skill="(guidance)", command=[], returncode=0,
+        stdout_tail=f"Auto-ran: capture={ran_capture}, memory-scan={ran_dump}. "
+                    f"Manual steps written to {guidance_path.name} "
+                    f"(frida/symbolic/anti-debug/mitigation; circumvention excluded per policy).",
+        stderr_tail="", started_at=datetime.now(timezone.utc).isoformat(), duration_s=0.0,
+        artifacts=[str(guidance_path)],
+    ))
 
     # Phase 4 - Defensive remediation advisory.
     if include_remediation_note:

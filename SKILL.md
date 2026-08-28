@@ -92,6 +92,18 @@ python scripts\full_assess.py <target> [--out output] [--profile service]
 Intrusive SQLi is never auto-run — the chain is read-only recon; run `sqli_test.py --authorized`
 separately on any parameterised endpoint it surfaces.
 
+**Guided phase (artifact flow).** After the artifact chain, `orchestrate.py` adds a defensive
+"guided next steps" phase:
+
+- **Auto-runs** analysis when the evidence is already on disk — a network capture (`*.har`) →
+  network-interceptor, a memory dump (`*.dmp/.raw/.mem`) → memory-dumper.
+- **Writes `output/GUIDANCE.md`** with exact commands for the steps that need a live process or
+  extra tooling (capture traffic, dump a process, frida tracing, symbolic-execution,
+  anti-debugging / mitigation review) — the user runs these on the authorized target.
+- **Excludes circumvention** from the automatic flow (master-unlock, dotnet-keygen,
+  binary-patcher, electron-builder-repacker) per MASTER_POLICY §2, redirecting to defensive
+  mapping/hardening instead.
+
 **B. Reason it out yourself** — when the request does not map to a single command, pick the
 skill from the table below and follow its `SKILL.md`. Confirm authorization first (MASTER_POLICY §1).
 
