@@ -182,6 +182,116 @@ def build_report(source_dir: Path, license_files, findings, server_seen) -> str:
     return "\n".join(L)
 
 
+# Design-level attack-path narrative per weakness category (abuse-case for a
+# red-team write-up). Describes WHY a control fails and the CLASS of technique —
+# not a step-by-step weaponization.
+CATEGORY_ATTACK = {
+    "client-side-gate": {
+        "node": "Client-side decision",
+        "precondition": "Attacker controls the client (debugger/patched binary).",
+        "technique_class": "Force the non-authoritative boolean to the allow state.",
+        "effect": "Access granted without a valid entitlement.",
+        "control": "Make the server the authority; client only renders a signed decision.",
+    },
+    "boolean-return": {
+        "node": "Bare boolean return",
+        "precondition": "Decision collapses to one return value.",
+        "technique_class": "Single-point manipulation of the decision.",
+        "effect": "Full bypass from one change.",
+        "control": "Return a verified signed entitlement; fail closed on any error.",
+    },
+    "hardcoded-secret": {
+        "node": "Embedded secret / signing key",
+        "precondition": "Secret ships inside the client and is recoverable.",
+        "technique_class": "Recover key material, then mint valid-looking licenses.",
+        "effect": "Attacker forges licenses that pass validation.",
+        "control": "Keep signing keys server-side; rotate on leak; never ship secrets.",
+    },
+    "embedded-pubkey": {
+        "node": "Local signature verify",
+        "precondition": "Verify path and pinned key both live in the client.",
+        "technique_class": "Swap the key/verify path so forged data verifies.",
+        "effect": "Local signature checks no longer trustworthy.",
+        "control": "Verify entitlement signatures server-side.",
+    },
+    "static-compare": {
+        "node": "Static key comparison",
+        "precondition": "Key compared to a constant/known value.",
+        "technique_class": "Discover the accept condition from the comparison.",
+        "effect": "Accepting value is trivially known.",
+        "control": "Validate via server-side signature/HMAC over user+expiry.",
+    },
+    "weak-crypto": {
+        "node": "Weak hash (MD5/SHA-1)",
+        "precondition": "Integrity relies on a collision-prone hash.",
+        "technique_class": "Exploit weak integrity guarantees.",
+        "effect": "Integrity of license data not assured.",
+        "control": "SHA-256+ with an authenticated signature.",
+    },
+    "local-trial-state": {
+        "node": "Local trial/activation state",
+        "precondition": "Trial/activation state stored locally.",
+        "technique_class": "Reset/roll back local state to extend usage.",
+        "effect": "Trial limits circumvented.",
+        "control": "Track state server-side per account/device; local = cache only.",
+    },
+}
+
+
+def build_attack_path(findings, server_seen) -> str:
+    cats = []
+    for f in findings:
+        if f["category"] in CATEGORY_ATTACK and f["category"] not in cats:
+            cats.append(f["category"])
+
+    L = ["# License Attack-Path (design-level, for red-team write-up)", "",
+         "_Describes, at design level, why each control is abusable and the class of",
+         "technique — as findings for an authorized engagement. It is NOT a working",
+         "bypass, keygen, or patch (MASTER_POLICY §2)._", ""]
+
+    # Mermaid diagram of the decision flow and where it breaks.
+    L.append("## Flow")
+    L.append("")
+    L.append("```mermaid")
+    L.append("flowchart TD")
+    L.append("    A[Attacker-controlled client] --> B{License validation}")
+    if server_seen:
+        L.append("    B -->|calls server| S[Server decision]")
+        L.append("    S --> G([Access])")
+    else:
+        L.append("    B -->|no server call detected| LOCAL[Local-only decision]")
+        L.append("    LOCAL --> G([Access])")
+    for i, c in enumerate(cats):
+        node = CATEGORY_ATTACK[c]["node"]
+        L.append(f"    B -.weak.-> W{i}[{node}]")
+        L.append(f"    W{i} -.abuse.-> G")
+    if not cats:
+        L.append("    B --> G([Access])")
+    L.append("    classDef weak fill:#fdd,stroke:#c00;")
+    if cats:
+        L.append("    class " + ",".join(f"W{i}" for i in range(len(cats))) + " weak;")
+    L.append("```")
+    L.append("")
+
+    L.append("## Weakness paths")
+    L.append("")
+    if not cats:
+        L.append("No categorised weakness paths. Review the surface manually.")
+    for c in cats:
+        a = CATEGORY_ATTACK[c]
+        L.append(f"### {a['node']}")
+        L.append(f"- **Precondition:** {a['precondition']}")
+        L.append(f"- **Technique class:** {a['technique_class']}")
+        L.append(f"- **Effect:** {a['effect']}")
+        L.append(f"- **Control that breaks the path:** {a['control']}")
+        L.append("")
+
+    L.append("## Overall")
+    L.append(f"- Server-side validation: **{'present' if server_seen else 'absent — whole decision is local'}**.")
+    L.append("- Priority: eliminate the highest-severity local decision points first; move authority server-side.")
+    return "\n".join(L)
+
+
 TEST_SCAFFOLD = '''"""
 test_license_behavior.py — generated allow/deny scaffold (defensive).
 
@@ -228,11 +338,14 @@ def main() -> int:
         encoding="utf-8")
     (out / "LICENSE_AUDIT.md").write_text(
         build_report(src, license_files, findings, server_seen), encoding="utf-8")
+    (out / "ATTACK_PATH.md").write_text(
+        build_attack_path(findings, server_seen), encoding="utf-8")
     (out / "test_license_behavior.py").write_text(TEST_SCAFFOLD, encoding="utf-8")
 
     print(f"[+] Scanned {len(files)} source file(s); {len(license_files)} touch licensing.")
     print(f"[+] {len(findings)} weakness signal(s).")
     print(f"[+] {out / 'LICENSE_AUDIT.md'}")
+    print(f"[+] {out / 'ATTACK_PATH.md'} (design-level attack paths + mermaid)")
     print(f"[+] {out / 'test_license_behavior.py'} (fill in evaluate_license)")
     return 0
 

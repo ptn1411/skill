@@ -48,6 +48,7 @@ It scans `.cs/.js/.ts/.java/.py/.cpp/.go/...` files for licensing logic.
 
 Outputs in `--out`:
 - **`LICENSE_AUDIT.md`** — validation surface, weaknesses (abuse-case view, severity-ranked), a hardening plan, and a test plan.
+- **`ATTACK_PATH.md`** — design-level attack paths for a red-team write-up: a mermaid flow diagram of where the decision breaks, plus per-weakness *precondition → technique class → effect → control*. Descriptive findings, **not** a working bypass/keygen/patch.
 - **`license_findings.json`** — structured findings.
 - **`test_license_behavior.py`** — a pytest scaffold; wire `evaluate_license()` to your real check to prove valid→allow / expired/tampered/missing→deny.
 
