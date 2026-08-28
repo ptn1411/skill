@@ -30,6 +30,7 @@ sub_skills_to_remove = [
     "network-scanner",
     "windows-log-hunter",
     "web-app-scanner",
+    "license-robustness-audit",
     "nuitka-decryptor",
     "orchestrator-plugin-sdk",
     "pyinstaller-unpacker",

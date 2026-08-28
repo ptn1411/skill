@@ -452,6 +452,16 @@ def run_audit_generic(source_dir: Path, out_dir: Path) -> PhaseResult:
                       [PYTHON, str(script), str(source_dir), "--out", str(audit_out)])
 
 
+def run_license_audit(source_dir: Path, out_dir: Path) -> PhaseResult:
+    """Defensive license robustness audit on recovered/owned source (no bypass)."""
+    script = REPO_ROOT / "license-robustness-audit" / "scripts" / "audit_license.py"
+    audit_out = out_dir / "license-audit"
+    phase = make_phase("audit:license", "license-robustness-audit",
+                       [PYTHON, str(script), str(source_dir), "--out", str(audit_out)])
+    phase.artifacts = [str(audit_out)]
+    return phase
+
+
 def run_container_cloud_audit(target: Path, out_dir: Path) -> PhaseResult:
     """Run container-cloud-auditor on deployment artifacts."""
     audit_out = out_dir / "container-cloud-auditor"
@@ -705,6 +715,10 @@ def execute_mission(
     elif source_dir and source_dir == dotnet_decompiled:
         # Already audited inside run_dotnet_decompile, note it
         pass
+
+    #   3c-2. Defensive license robustness audit on recovered source (no bypass).
+    if source_dir:
+        report.phases.append(run_license_audit(source_dir, out_dir))
 
     #   3d. Deployment and supply-chain audit on original/recovered source trees
     audit_targets = []
