@@ -1,0 +1,356 @@
+<title>Skill Playbook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chivo:wght@700;900&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --bg:#eef1f5; --surface:#ffffff; --surface-2:#f7f9fb;
+    --ink:#141d27; --muted:#5b6773; --faint:#8593a0;
+    --border:#dde3ea; --border-strong:#c9d2db;
+    --accent:#a2621a; --accent-ink:#7c4b12; --accent-soft:#f3e7d4;
+    --teal:#0d6f79; --code-bg:#121a24; --code-ink:#e7edf3; --code-comment:#7d8fa0;
+    --disp:#3b7a4d; --net:#2563a8; --web:#0d6f79; --blue:#5a49c9; --lic:#a2621a;
+    --art:#8a5a2b; --dyn:#9a3b6b; --audit:#2f7d5b; --pentest:#7d3b8f; --meta:#5b6773; --boundary:#b23b3b;
+    --shadow:0 1px 2px rgba(20,29,39,.06), 0 8px 24px -12px rgba(20,29,39,.18);
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#0d131a; --surface:#141d27; --surface-2:#101821;
+      --ink:#e7edf3; --muted:#93a0af; --faint:#6d7b8a;
+      --border:#243140; --border-strong:#31414f;
+      --accent:#e0a84a; --accent-ink:#f0c579; --accent-soft:#2a2113;
+      --teal:#3fc5d0; --code-bg:#0a1017; --code-ink:#e7edf3; --code-comment:#6b7d8e;
+      --disp:#63c185; --net:#5fa1e6; --web:#3fc5d0; --blue:#9488f0; --lic:#e0a84a;
+      --art:#d99a5b; --dyn:#e07bab; --audit:#4fc79a; --pentest:#c078d0; --meta:#93a0af; --boundary:#e06a6a;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 12px 30px -16px rgba(0,0,0,.7);
+    }
+  }
+  :root[data-theme="dark"]{
+      --bg:#0d131a; --surface:#141d27; --surface-2:#101821;
+      --ink:#e7edf3; --muted:#93a0af; --faint:#6d7b8a;
+      --border:#243140; --border-strong:#31414f;
+      --accent:#e0a84a; --accent-ink:#f0c579; --accent-soft:#2a2113;
+      --teal:#3fc5d0; --code-bg:#0a1017; --code-ink:#e7edf3; --code-comment:#6b7d8e;
+      --disp:#63c185; --net:#5fa1e6; --web:#3fc5d0; --blue:#9488f0; --lic:#e0a84a;
+      --art:#d99a5b; --dyn:#e07bab; --audit:#4fc79a; --pentest:#c078d0; --meta:#93a0af; --boundary:#e06a6a;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 12px 30px -16px rgba(0,0,0,.7);
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:"IBM Plex Sans",system-ui,sans-serif; line-height:1.55; -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1120px; margin:0 auto; padding:0 22px}
+
+  header{position:sticky; top:0; z-index:20; background:color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter:blur(10px); border-bottom:1px solid var(--border)}
+  .bar{display:flex; align-items:center; gap:16px; padding:13px 0}
+  .brand{display:flex; align-items:baseline; gap:10px; margin-right:auto; min-width:0}
+  .brand .mark{font-family:"IBM Plex Mono",monospace; color:var(--accent); font-weight:500; font-size:1.05rem}
+  .brand h1{font-family:"Chivo",sans-serif; font-weight:900; font-size:1.18rem; margin:0; letter-spacing:-.01em; white-space:nowrap}
+  .brand span.sub{color:var(--faint); font-size:.82rem; white-space:nowrap}
+  @media(max-width:640px){.brand span.sub{display:none}}
+  .search{flex:1; max-width:340px; display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--border-strong); border-radius:10px; padding:7px 11px; color:var(--muted)}
+  .search input{border:0; background:transparent; color:var(--ink); font:inherit; font-size:.9rem; width:100%; outline:none}
+  .search svg{flex:none; opacity:.6}
+  .toggle{flex:none; display:inline-flex; align-items:center; gap:6px; cursor:pointer; background:var(--surface); border:1px solid var(--border-strong); border-radius:10px; color:var(--muted); padding:7px 10px; font:inherit; font-size:.82rem}
+  .toggle:hover{color:var(--ink)}
+
+  .hero{padding:40px 0 8px}
+  .eyebrow{font-family:"IBM Plex Mono",monospace; font-size:.72rem; letter-spacing:.16em; text-transform:uppercase; color:var(--accent); margin:0 0 14px}
+  .hero h2{font-family:"Chivo",sans-serif; font-weight:900; font-size:clamp(1.9rem,4.6vw,3rem); line-height:1.04; letter-spacing:-.02em; margin:0 0 14px; text-wrap:balance; max-width:16ch}
+  .hero p{color:var(--muted); font-size:1.05rem; max-width:60ch; margin:0}
+
+  .ways{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; padding:30px 0 8px}
+  @media(max-width:760px){.ways{grid-template-columns:1fr}}
+  .way{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px; box-shadow:var(--shadow)}
+  .way .n{font-family:"IBM Plex Mono",monospace; color:var(--accent); font-size:.8rem; font-weight:500}
+  .way h3{margin:.4rem 0 .5rem; font-size:1.02rem; font-weight:600}
+  .way p{margin:0; color:var(--muted); font-size:.9rem}
+  .way code, .hero code, .note code{font-family:"IBM Plex Mono",monospace; background:var(--surface-2); border:1px solid var(--border); padding:.08em .4em; border-radius:5px; font-size:.85em; color:var(--accent-ink)}
+
+  .sec-head{display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap; padding:38px 0 4px}
+  .sec-head h2{font-family:"Chivo",sans-serif; font-weight:700; font-size:1.35rem; margin:0; letter-spacing:-.01em}
+  .count{color:var(--faint); font-size:.82rem; font-family:"IBM Plex Mono",monospace}
+  .filters{display:flex; flex-wrap:wrap; gap:7px; padding-top:12px}
+  .pill{cursor:pointer; font:inherit; font-size:.8rem; font-weight:500; background:var(--surface); border:1px solid var(--border-strong); color:var(--muted); padding:5px 12px; border-radius:999px; transition:.15s}
+  .pill:hover{color:var(--ink)}
+  .pill[aria-pressed="true"]{background:var(--ink); color:var(--bg); border-color:var(--ink)}
+
+  .grid{display:grid; grid-template-columns:repeat(2,1fr); gap:16px; padding:18px 0 0}
+  @media(max-width:820px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:18px 18px 16px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:12px; border-top:3px solid var(--cat,var(--accent))}
+  .card.hide{display:none}
+  .card-top{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+  .handle{font-family:"IBM Plex Mono",monospace; font-weight:500; font-size:1.02rem; color:var(--ink)}
+  .handle b{color:var(--cat,var(--accent)); font-weight:500}
+  .chip{font-family:"IBM Plex Mono",monospace; font-size:.66rem; letter-spacing:.08em; text-transform:uppercase; color:var(--cat,var(--accent)); background:color-mix(in srgb,var(--cat,var(--accent)) 12%, transparent); border:1px solid color-mix(in srgb,var(--cat,var(--accent)) 30%, transparent); padding:2px 8px; border-radius:6px; margin-left:auto}
+  .use{margin:0; color:var(--muted); font-size:.92rem}
+  .sample{display:flex; gap:9px; align-items:flex-start; background:var(--surface-2); border:1px solid var(--border); border-radius:11px; padding:10px 12px}
+  .sample .q{font-family:"IBM Plex Mono",monospace; color:var(--teal); font-size:.9rem; flex:none; line-height:1.5}
+  .sample p{margin:0; font-size:.9rem; color:var(--ink)}
+  .sample .lbl{display:block; font-size:.66rem; letter-spacing:.1em; text-transform:uppercase; color:var(--faint); margin-bottom:2px}
+
+  .cmds{display:flex; flex-direction:column; gap:8px; margin-top:auto}
+  .cmd{position:relative; background:var(--code-bg); border-radius:10px; overflow:hidden}
+  .cmd pre{margin:0; padding:11px 44px 11px 13px; overflow-x:auto; font-family:"IBM Plex Mono",monospace; font-size:.8rem; line-height:1.5; color:var(--code-ink)}
+  .cmd pre .c{color:var(--code-comment)}
+  .copy{position:absolute; top:7px; right:7px; cursor:pointer; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); color:#c9d4de; border-radius:7px; padding:4px 7px; font:inherit; font-size:.7rem; line-height:1; transition:.15s}
+  .copy:hover{background:rgba(255,255,255,.14); color:#fff}
+  .copy.ok{background:var(--teal); border-color:var(--teal); color:#fff}
+  .manual{margin-top:auto; font-size:.82rem; color:var(--faint); font-style:italic; border-top:1px dashed var(--border); padding-top:9px}
+  .bound{margin-top:auto; display:flex; gap:9px; align-items:flex-start; background:color-mix(in srgb,var(--boundary) 9%,transparent); border:1px solid color-mix(in srgb,var(--boundary) 28%,transparent); border-radius:11px; padding:10px 12px; font-size:.85rem; color:var(--ink)}
+  .bound b{color:var(--boundary)}
+
+  .empty{display:none; text-align:center; color:var(--muted); padding:50px 0; font-size:.95rem}
+  .empty.show{display:block}
+  footer{margin-top:44px; border-top:1px solid var(--border); padding:24px 0 50px; color:var(--faint); font-size:.82rem}
+  footer code{font-family:"IBM Plex Mono",monospace; color:var(--accent-ink)}
+  .note{background:var(--accent-soft); border:1px solid color-mix(in srgb,var(--accent) 30%,transparent); border-radius:12px; padding:13px 16px; margin:26px 0 0; font-size:.88rem; color:var(--ink)}
+  .note b{color:var(--accent-ink)}
+  @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<header>
+  <div class="wrap bar">
+    <div class="brand">
+      <span class="mark">&gt;_</span>
+      <h1>Skill Playbook</h1>
+      <span class="sub">gọi skill trong AI &amp; dòng lệnh</span>
+    </div>
+    <label class="search">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="q" type="search" placeholder="Tìm skill hoặc nhiệm vụ…" autocomplete="off" aria-label="Tìm skill">
+    </label>
+    <button class="toggle" id="theme" aria-label="Đổi giao diện sáng/tối"><span id="themeIcon">◐</span><span id="themeTxt">Theme</span></button>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <p class="eyebrow">Authorized recon · pentest · blue-team</p>
+    <h2>Skill nào cho việc gì — và câu lệnh đi kèm.</h2>
+    <p>Mỗi skill có một handle <code>/tên</code>, một công dụng, một câu mẫu để gọi qua AI, và lệnh CLI chạy trực tiếp. Lọc theo nhóm hoặc gõ tìm ở trên.</p>
+  </section>
+
+  <section class="ways" aria-label="Ba cách gọi skill">
+    <div class="way"><span class="n">01</span><h3>Nói tự nhiên với AI</h3><p>Mô tả việc — skill tự bật theo mô tả. Ví dụ <em>“quét cổng host 10.0.0.5”</em> → <code>/network-scanner</code>.</p></div>
+    <div class="way"><span class="n">02</span><h3>Gọi thẳng handle</h3><p>Chỉ định skill: <em>“dùng <code>/web-app-scanner</code> kiểm tra https://app.local”</em>.</p></div>
+    <div class="way"><span class="n">03</span><h3>Chạy lệnh CLI</h3><p>Không cần AI — chạy script. Dispatcher <code>/assess</code> tự chọn skill từ mục tiêu.</p></div>
+  </section>
+
+  <div class="sec-head">
+    <h2>Danh mục skill</h2>
+    <span class="count" id="count"></span>
+  </div>
+  <div class="filters" id="filters" role="group" aria-label="Lọc theo nhóm"></div>
+
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty">Không có skill khớp — thử từ khoá khác.</div>
+
+  <div class="note">
+    <b>Ranh giới:</b> chỉ dùng cho mục tiêu bạn <b>sở hữu / được uỷ quyền</b>. Recon là read-only; SQLi cần <code>--authorized</code>. Nhóm <b>Boundary</b> (keygen/patch/bypass) nằm ngoài luồng tự động — dùng <code>/license-robustness-audit</code> cho hướng phòng thủ.
+  </div>
+</main>
+
+<footer class="wrap">
+  Chạy mọi lệnh từ <code>C:\Users\NAM\Code\skill</code>. Đã link junction vào Gemini &amp; Claude — mô tả việc là skill tự kích hoạt. Thay <code>&lt;...&gt;</code> bằng đường dẫn thật.
+</footer>
+
+<script>
+const CATS = {
+  disp:{label:"Dispatcher"}, network:{label:"Network"}, web:{label:"Web"}, blue:{label:"Blue-team"},
+  lic:{label:"License"}, art:{label:"Artifact RE"}, dyn:{label:"Dynamic"}, audit:{label:"Config/SBOM"},
+  pentest:{label:"Pentest"}, meta:{label:"Meta"}, boundary:{label:"Boundary"}
+};
+
+const SKILLS = [
+  // dispatchers
+  {h:"assess", cat:"disp", use:"Đưa mục tiêu bất kỳ (IP/URL/winlogs/file) — tự phân loại rồi gọi đúng một skill.",
+   sample:"đánh giá 192.168.1.10 xem nên dùng skill nào",
+   cmds:[["python scripts\\assess.py 192.168.1.0/24"],["python scripts\\assess.py https://app.local --dry-run","# xem trước"]]},
+  {h:"full_assess", cat:"disp", use:"Chuỗi nhiều skill rồi tổng hợp MỘT báo cáo: host→web hoặc web→host.",
+   sample:"quét toàn diện host 10.0.0.5 rồi tổng hợp báo cáo",
+   cmds:[["python scripts\\full_assess.py 10.0.0.5"]]},
+  {h:"orchestrate", cat:"disp", use:"Skill tổng cho artifact: fingerprint .exe → decompile đúng loại → audit → license → GUIDANCE.",
+   sample:"phân tích app.exe này của tôi và audit bảo mật",
+   cmds:[["python scripts\\orchestrate.py \"C:\\path\\app.exe\" --out output"]]},
+
+  // network / web / blue / license
+  {h:"network-scanner", cat:"network", use:"Quét host/cổng/dịch vụ bằng Nmap, báo cáo phòng thủ (cảnh báo RDP/SMB/DB…).",
+   sample:"quét cổng và dịch vụ của 192.168.1.10",
+   cmds:[["python network-scanner\\scripts\\nmap_scan.py 192.168.1.10 --profile service --out output\\nmap"],
+         ["python network-scanner\\scripts\\nmap_scan.py 192.168.1.0/24 --profile discovery --out output\\nmap","# host sống"],
+         ["python network-scanner\\scripts\\nmap_scan.py 10.0.0.5 --out output\\nmap -- -p 22,80,443","# cổng cụ thể"]]},
+  {h:"web-app-scanner", cat:"web", use:"Recon web (headers/TLS/CORS/cookie) + discovery (nuclei/ffuf) + test SQLi có kiểm soát.",
+   sample:"kiểm tra bảo mật web https://app.local",
+   cmds:[["python web-app-scanner\\scripts\\web_recon.py https://app.local --out output\\web"],
+         ["python web-app-scanner\\scripts\\web_recon.py https://app.local --nuclei --ffuf wordlist.txt --out output\\web","# quét sâu"],
+         ["python web-app-scanner\\scripts\\sqli_test.py \"https://app.local/item?id=1\" --authorized --out output\\sqli","# SQLi (cần được phép)"]]},
+  {h:"windows-log-hunter", cat:"blue", use:"Hunt Windows Event Log tìm dấu hiệu tấn công (native PowerShell, không cần cài).",
+   sample:"hunt log Windows máy này 24h qua",
+   cmds:[["python windows-log-hunter\\scripts\\hunt_eventlog.py --hours 24 --out output\\hunt"],
+         ["python windows-log-hunter\\scripts\\hunt_eventlog.py --engine hayabusa --logdir C:\\Windows\\System32\\winevt\\Logs --out output\\hunt","# Sigma (Hayabusa)"]]},
+  {h:"license-robustness-audit", cat:"lic", use:"Kiểm thử độ vững license: map validation, điểm yếu + hardening + attack-path. KHÔNG tạo keygen/bypass.",
+   sample:"audit độ vững license trong source app của tôi",
+   cmds:[["python license-robustness-audit\\scripts\\audit_license.py <source_dir> --out output\\license-audit"]]},
+
+  // artifact RE
+  {h:"binary-identifier", cat:"art", use:"Fingerprint binary: ngôn ngữ, compiler, packer, obfuscator — bước nhận diện đầu tiên.",
+   sample:"file .exe này viết bằng gì, đóng gói kiểu nào",
+   cmds:[["python binary-identifier\\scripts\\identify_app.py app.exe"]]},
+  {h:"dotnet-decompiler", cat:"art", use:"Decompile .NET (.exe/.dll) ra C#, phát hiện obfuscator + logic license/secret.",
+   sample:"decompile file .NET này và xem logic license",
+   cmds:[["python dotnet-decompiler\\scripts\\decompile_dotnet.py app.exe --out output\\dotnet"]]},
+  {h:"java-decompiler", cat:"art", use:"Decompile JAR/WAR/APK/class ra Java, phân tích license & secret.",
+   sample:"decompile app.jar và phân tích",
+   cmds:[["python java-decompiler\\scripts\\decompile_java.py app.jar --out output\\java"]]},
+  {h:"pyinstaller-unpacker", cat:"art", use:"Giải nén PyInstaller .exe → .pyc → decompile về Python.",
+   sample:"unpack file PyInstaller này",
+   cmds:[["python pyinstaller-unpacker\\scripts\\unpack_pyinstaller.py app.exe --out output\\py"]]},
+  {h:"nuitka-decryptor", cat:"art", use:"Reverse app Nuitka có file .encrypted: trích key từ .pyd rồi giải mã source.",
+   sample:"giải mã app Nuitka có file .encrypted",
+   cmds:[["python nuitka-decryptor\\scripts\\analyze_binary.py app.exe"]]},
+  {h:"ida-nuitka-reconstructor", cat:"art", use:"Dựng lại Python từ binary Nuitka KHÔNG mã hoá: trích constant từ PE .rsrc/.rdata.",
+   sample:"dựng lại source từ binary Nuitka onefile này",
+   cmds:[["python ida-nuitka-reconstructor\\scripts\\extract_rsrc_strings.py --binary app.exe --out strings.json"],
+         ["python ida-nuitka-reconstructor\\scripts\\reconstruct_nuitka_source.py --strings strings.json --out output\\src"]]},
+  {h:"electron-app-analyzer", cat:"art", use:"Mổ Electron: app.asar, IPC bridge, webPreferences không an toàn, khôi phục source.",
+   sample:"phân tích app Electron này tìm lỗ hổng IPC",
+   cmds:[["python electron-builder-unpacker\\scripts\\unpack_electron_builder.py app\\ --out output\\electron"],
+         ["python electron-app-analyzer\\scripts\\analyze_electron.py output\\electron --out output\\electron-analysis"]]},
+  {h:"tauri-unpacker", cat:"art", use:"Bung app Tauri: web asset nhúng (HTML/JS/CSS), config, IPC command, license frontend.",
+   sample:"bung app Tauri này lấy frontend",
+   cmds:[["python tauri-unpacker\\scripts\\unpack_tauri.py app.exe --out output\\tauri"]]},
+  {h:"rust-binary-analyzer", cat:"art", use:"Phân tích binary Rust: demangle symbol, dựng module map, nhận diện Tauri/Actix/Axum, tìm license.",
+   sample:"phân tích binary Rust này",
+   cmds:[["python rust-binary-analyzer\\scripts\\analyze_rust.py app.exe --out output\\rust"]]},
+  {h:"javascript-deobfuscator", cat:"art", use:"Trích sourcemap, gỡ rối bundle JS, khôi phục source; dump token/secret trong source.",
+   sample:"khôi phục source từ https://site/app.js.map",
+   cmds:[["python javascript-deobfuscator\\scripts\\extract_sourcemap.py https://site/app.js.map output\\js"]]},
+  {h:"android-apk-pentester", cat:"art", use:"Static analysis APK/XAPK/APKS: manifest, quyền, component export, cleartext, storage.",
+   sample:"phân tích tĩnh file APK này",
+   cmds:[["python android-apk-pentester\\scripts\\analyze_apk.py app.apk --out output\\apk"]]},
+  {h:"vm-and-bytecode-reverse", cat:"art", use:"Reverse VM tuỳ biến / bytecode (dispatcher loop, opcode table, .pyc/CIL/JVM/Lua).",
+   sample:"binary này là VM protector, giúp reverse bytecode",
+   manual:"Doc-only — hướng dẫn phương pháp, không có script tự chạy."},
+
+  // config / supply-chain
+  {h:"container-cloud-auditor", cat:"audit", use:"Audit Docker/Compose/K8s/Terraform: cổng phơi, quyền cao, secret hardcode, default rủi ro.",
+   sample:"audit cấu hình Docker/K8s trong repo này",
+   cmds:[["python container-cloud-auditor\\scripts\\analyze_container_cloud.py <dir> --out output\\cc"]]},
+  {h:"sbom-supply-chain-auditor", cat:"audit", use:"Audit manifest/lockfile: SBOM, install script rủi ro, version không ghim, secret-like.",
+   sample:"audit dependency/supply-chain của dự án này",
+   cmds:[["python sbom-supply-chain-auditor\\scripts\\analyze_supply_chain.py <dir> --out output\\sbom"]]},
+
+  // dynamic
+  {h:"network-interceptor", cat:"dyn", use:"Bắt & phân tích traffic app↔server (cần app chạy qua proxy). Tìm endpoint/token/OAuth.",
+   sample:"bắt traffic app rồi phân tích endpoint license",
+   cmds:[["python network-interceptor\\scripts\\capture_traffic.py --port 8080 --duration 120 --out captured.har"],
+         ["python network-interceptor\\scripts\\analyze_traffic.py captured.har --out output\\net"]]},
+  {h:"memory-dumper", cat:"dyn", use:"Dump bộ nhớ tiến trình rồi quét secret/key/token (cần process chạy).",
+   sample:"dump tiến trình app.exe và quét secret",
+   cmds:[["python memory-dumper\\scripts\\dump_process.py --name app.exe --out proc.dmp"],
+         ["python memory-dumper\\scripts\\scan_memory.py proc.dmp --out output\\mem"]]},
+  {h:"frida-hooker", cat:"dyn", use:"Sinh & inject hook Frida: tracing hàm, chặn crypto, SSL-pinning bypass (cần process chạy).",
+   sample:"tạo hook Frida để trace hàm crypto của app",
+   cmds:[["python frida-hooker\\scripts\\generate_hooks.py --list","# xem template"],
+         ["python frida-hooker\\scripts\\run_frida.py --help","# attach/spawn"]]},
+  {h:"symbolic-execution-tools", cat:"dyn", use:"Symbolic execution & constraint solving (angr/Z3/Unicorn/Qiling) cho crackme/VM puzzle.",
+   sample:"dùng angr giải input cho crackme này",
+   manual:"Doc-only — cần angr/z3 cài riêng; hướng dẫn phương pháp."},
+  {h:"anti-debugging-techniques", cat:"dyn", use:"Phát hiện & xử lý anti-debug (ptrace/PEB/timing) — review checklist trước khi phân tích động.",
+   sample:"app này có anti-debug gì, cách nhận biết",
+   manual:"Doc-only — checklist phương pháp, không có script."},
+  {h:"binary-protection-bypass", cat:"dyn", use:"Nhận diện mitigation (ASLR/NX/canary/RELRO/CET/MTE) trên ELF — dữ liệu cho báo cáo hardening.",
+   sample:"kiểm tra mitigation của binary ELF này",
+   manual:"Doc-only — hướng dẫn phương pháp phòng thủ."},
+
+  // pentest / meta
+  {h:"pentest-script-generator", cat:"pentest", use:"Sinh script pentest/verify từ report vuln-XXXX.md hoặc request Burp (TC-01..N, evidence, JSON).",
+   sample:"viết script kiểm chứng từ vuln-0001.md",
+   cmds:[["python antigravity-kit\\pentest-script-generator\\scripts\\generate.py vuln-0001.md"]]},
+  {h:"orchestrator-plugin-sdk", cat:"meta", use:"Scaffold & validate skill mới đúng chuẩn (file layout, metadata, output contract, đăng ký).",
+   sample:"tạo khung một skill mới đúng chuẩn toolkit",
+   manual:"Doc/SDK — dùng khi phát triển skill mới cho bộ."},
+
+  // boundary — excluded from automated flow
+  {h:"master-unlock", cat:"boundary", boundary:true, use:"Skill reverse tổng của repo (mục tiêu bao gồm bypass/keygen)."},
+  {h:"dotnet-keygen", cat:"boundary", boundary:true, use:"Trích thuật toán license .NET và sinh keygen."},
+  {h:"binary-patcher", cat:"boundary", boundary:true, use:"Patch bytecode/assembly để bỏ qua kiểm tra (NOP/JMP/JE-JNE)."},
+  {h:"electron-builder-repacker", cat:"boundary", boundary:true, use:"Sửa & đóng gói lại app.asar (bao gồm inject code)."},
+  {h:"dotnet-patcher", cat:"boundary", boundary:true, use:"Patch IL bỏ license/anti-tamper. (Phần find_patch_targets là scan phòng thủ, dùng trong orchestrate.)"},
+  {h:"writerpro-pentest", cat:"boundary", boundary:true, use:"Test license đa dự án + sinh key theo template payload."}
+];
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function fmtCmd(line, note){ let h=esc(line); if(note) h+=' <span class="c">'+esc(note)+'</span>'; return h; }
+
+const grid = document.getElementById('grid');
+SKILLS.forEach(s=>{
+  const el=document.createElement('article');
+  el.className='card'; el.style.setProperty('--cat','var(--'+s.cat+')'); el.dataset.cat=s.cat;
+  el.dataset.text=(s.h+' '+s.use+' '+(s.sample||'')+' '+CATS[s.cat].label).toLowerCase();
+  let body;
+  if(s.boundary){
+    body=`<div class="bound"><span>⛔</span><div><b>Ngoài luồng tự động</b> — theo MASTER_POLICY §2. Cho mục tiêu được phép, dùng <b>/license-robustness-audit</b> (map validation, điểm yếu, attack-path, hardening).</div></div>`;
+  }else{
+    const sample=`<div class="sample"><span class="q">›</span><div><span class="lbl">Câu mẫu gọi AI</span><p>${esc(s.sample)}</p></div></div>`;
+    const tail = s.cmds && s.cmds.length
+      ? `<div class="cmds">${s.cmds.map(c=>`<div class="cmd"><pre>${fmtCmd(c[0],c[1])}</pre><button class="copy" data-cmd="${esc(c[0])}">copy</button></div>`).join('')}</div>`
+      : `<div class="manual">${esc(s.manual||'')}</div>`;
+    body=sample+tail;
+  }
+  el.innerHTML=`<div class="card-top"><span class="handle"><b>/</b>${esc(s.h)}</span><span class="chip">${CATS[s.cat].label}</span></div><p class="use">${esc(s.use)}</p>${body}`;
+  grid.appendChild(el);
+});
+
+const filters=document.getElementById('filters');
+const allBtn=document.createElement('button');
+allBtn.className='pill'; allBtn.textContent='Tất cả'; allBtn.dataset.cat='all'; allBtn.setAttribute('aria-pressed','true');
+filters.appendChild(allBtn);
+Object.entries(CATS).forEach(([k,v])=>{ const b=document.createElement('button'); b.className='pill'; b.textContent=v.label; b.dataset.cat=k; b.setAttribute('aria-pressed','false'); filters.appendChild(b); });
+
+let curCat='all', curQ='';
+const countEl=document.getElementById('count');
+function apply(){
+  let shown=0;
+  document.querySelectorAll('.card').forEach(c=>{
+    const show=(curCat==='all'||c.dataset.cat===curCat) && (!curQ||c.dataset.text.includes(curQ));
+    c.classList.toggle('hide', !show); if(show) shown++;
+  });
+  document.getElementById('empty').classList.toggle('show', shown===0);
+  countEl.textContent=shown+' / '+SKILLS.length+' skill';
+}
+filters.addEventListener('click', e=>{
+  const b=e.target.closest('.pill'); if(!b) return;
+  curCat=b.dataset.cat;
+  document.querySelectorAll('.pill').forEach(p=>p.setAttribute('aria-pressed', p===b));
+  try{localStorage.setItem('sp_cat',curCat)}catch(_){}
+  apply();
+});
+document.getElementById('q').addEventListener('input', e=>{ curQ=e.target.value.trim().toLowerCase(); apply(); });
+
+grid.addEventListener('click', async e=>{
+  const btn=e.target.closest('.copy'); if(!btn) return;
+  const text=btn.dataset.cmd;
+  try{ await navigator.clipboard.writeText(text); }
+  catch(_){ const r=document.createRange(); r.selectNode(btn.previousElementSibling); const sel=getSelection(); sel.removeAllRanges(); sel.addRange(r); try{document.execCommand('copy')}catch(__){} sel.removeAllRanges(); }
+  const old=btn.textContent; btn.textContent='đã copy ✓'; btn.classList.add('ok');
+  setTimeout(()=>{btn.textContent=old; btn.classList.remove('ok')},1300);
+});
+
+const root=document.documentElement;
+function setTheme(t){
+  if(t) root.setAttribute('data-theme',t); else root.removeAttribute('data-theme');
+  const dark=t==='dark'||(!t&&matchMedia('(prefers-color-scheme:dark)').matches);
+  document.getElementById('themeIcon').textContent=dark?'☀':'☾';
+  document.getElementById('themeTxt').textContent=dark?'Sáng':'Tối';
+}
+let saved=null; try{saved=localStorage.getItem('sp_theme')}catch(_){}
+setTheme(saved);
+document.getElementById('theme').addEventListener('click',()=>{
+  const cur=root.getAttribute('data-theme');
+  const dark=cur==='dark'||(!cur&&matchMedia('(prefers-color-scheme:dark)').matches);
+  const next=dark?'light':'dark'; setTheme(next); try{localStorage.setItem('sp_theme',next)}catch(_){}
+});
+try{const c=localStorage.getItem('sp_cat'); if(c){curCat=c; document.querySelectorAll('.pill').forEach(p=>p.setAttribute('aria-pressed', p.dataset.cat===c));}}catch(_){}
+apply();
+</script>
