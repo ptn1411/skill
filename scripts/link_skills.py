@@ -61,6 +61,7 @@ skills_to_link = [
     ("pyinstaller-unpacker", "pyinstaller-unpacker"),
     ("rust-binary-analyzer", "rust-binary-analyzer"),
     ("sbom-supply-chain-auditor", "sbom-supply-chain-auditor"),
+    ("searching-exploit-db", "searching-exploit-db"),
     ("symbolic-execution-tools", "symbolic-execution-tools"),
     ("tauri-unpacker", "tauri-unpacker"),
     ("vm-and-bytecode-reverse", "vm-and-bytecode-reverse"),

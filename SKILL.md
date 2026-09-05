@@ -112,6 +112,7 @@ skill from the table below and follow its `SKILL.md`. Confirm authorization firs
 | Network / port / service exposure | [network-scanner](network-scanner/SKILL.md) |
 | Web app (subdomains, headers, TLS, CORS, XSS/SQLi/SSRF/SSTI, discovery) | [web-app-scanner](web-app-scanner/SKILL.md) |
 | Access-control / business-logic flaws (IDOR/BOLA, mass assignment, race conditions) | [web-logic-auditor](web-logic-auditor/SKILL.md) |
+| CVE / EDB-ID / public PoC lookup in Exploit-DB | [searching-exploit-db](searching-exploit-db/SKILL.md) |
 | Windows host log / intrusion hunt (blue team) | [windows-log-hunter](windows-log-hunter/SKILL.md) |
 | Traffic capture / API & license protocol | [network-interceptor](network-interceptor/SKILL.md) |
 | Binary / app artifact recovery + audit | run `scripts/orchestrate.py` (auto-selects the RE sub-skill) |
