@@ -136,6 +136,15 @@ def consolidate(target: str, kind: str, steps: list[Step], out: Path) -> Path:
     lines.append("- For any web endpoint with parameters, run authorized SQLi testing:")
     lines.append("  `python web-app-scanner/scripts/sqli_test.py \"<url>\" --authorized`")
     lines.append("- Prioritise: exposed management ports (RDP/SSH/SMB), missing security headers, weak TLS.")
+    lines.append("")
+    lines.append("---")
+    lines.append("## Ủng hộ dự án")
+    lines.append("")
+    lines.append("Nếu dự án giúp ích cho công việc nghiên cứu hoặc phòng thủ của bạn, bạn có thể ủng hộ để duy trì tài liệu, test và các workflow mới. Mọi khoản đóng góp đều hoàn toàn tự nguyện.")
+    lines.append("")
+    lines.append("- Ngân hàng: **TPBank**")
+    lines.append("- Chủ tài khoản: **PHAM THANH NAM**")
+    lines.append("- Số tài khoản: **69238686888**")
     report = adir / "REPORT.md"
     report.write_text("\n".join(lines), encoding="utf-8")
     return report

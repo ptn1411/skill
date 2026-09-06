@@ -45,6 +45,7 @@ Các ví dụ dưới đây chạy từ root repo, nên luôn dùng đường d�
 | `container-cloud-auditor` | Audit Docker/Kubernetes/Terraform/cloud config | `python container-cloud-auditor\scripts\analyze_container_cloud.py . --out output\container-cloud` |
 | `sbom-supply-chain-auditor` | Audit manifests/lockfiles phụ thuộc | `python sbom-supply-chain-auditor\scripts\analyze_supply_chain.py . --out output\sbom` |
 | `searching-exploit-db` | Tra CVE, EDB-ID hoặc sản phẩm trong Exploit-DB | `python searching-exploit-db\scripts\search_exploit_db.py --cve CVE-2021-44228` |
+| `vulnerability-lookup` | Tra cứu đa nguồn CVE, CISA KEV, EPSS, NVD và GitHub PoC | `python vulnerability-lookup\scripts\lookup_vuln.py --cve CVE-2024-6387` |
 | `orchestrator-plugin-sdk` | Validate contract của skill mới | `python orchestrator-plugin-sdk\scripts\validate_skill_contract.py container-cloud-auditor` |
 
 ## Cài vào CLI agent

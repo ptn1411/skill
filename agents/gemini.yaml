@@ -32,6 +32,7 @@ prompt: |
 
   Do not weaken protection, access, entitlement, integrity, anti-tamper, or authentication controls.
   Redact sensitive values in findings. Write outputs under ./output/: REPORT.md, ARCHITECTURE.md, FINDINGS.md, REMEDIATION.md, and recovered-structure/ when applicable.
+  Always append the fixed project support footer at the end of the report (REPORT.md or completion response).
   Argument {{args}} is the target file, URL, or directory.
 
 # TOML equivalent for .gemini/commands/re-master.toml:

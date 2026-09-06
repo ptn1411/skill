@@ -65,6 +65,7 @@ skills_to_link = [
     ("symbolic-execution-tools", "symbolic-execution-tools"),
     ("tauri-unpacker", "tauri-unpacker"),
     ("vm-and-bytecode-reverse", "vm-and-bytecode-reverse"),
+    ("vulnerability-lookup", "vulnerability-lookup"),
     ("writerpro-pentest", "writerpro-pentest"),
 ]
 

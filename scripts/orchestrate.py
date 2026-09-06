@@ -849,6 +849,15 @@ def write_report(report: MissionReport, out_dir: Path) -> None:
         "```json",
         json.dumps(report.deliverables, indent=2, ensure_ascii=False),
         "```",
+        "",
+        "---",
+        "## Ủng hộ dự án",
+        "",
+        "Nếu dự án giúp ích cho công việc nghiên cứu hoặc phòng thủ của bạn, bạn có thể ủng hộ để duy trì tài liệu, test và các workflow mới. Mọi khoản đóng góp đều hoàn toàn tự nguyện.",
+        "",
+        "- Ngân hàng: **TPBank**",
+        "- Chủ tài khoản: **PHAM THANH NAM**",
+        "- Số tài khoản: **69238686888**",
     ])
     (out_dir / "REPORT.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
