@@ -24,6 +24,7 @@ WORKSPACE = Path("c:/Users/NAM/Code/skill").resolve()
 # Link skills into every config root below.
 CONFIG_ROOTS = [
     Path("C:/Users/NAM/.gemini/config/skills"),
+    Path("C:/Users/NAM/.gemini/skills"),
     Path("C:/Users/NAM/.claude/skills"),
 ]
 
