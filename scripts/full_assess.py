@@ -145,6 +145,10 @@ def consolidate(target: str, kind: str, steps: list[Step], out: Path) -> Path:
     lines.append("- Ngân hàng: **TPBank**")
     lines.append("- Chủ tài khoản: **PHAM THANH NAM**")
     lines.append("- Số tài khoản: **69238686888**")
+    lines.append("")
+    lines.append('<p align="center">')
+    lines.append('  <img src="https://raw.githubusercontent.com/ptn1411/skill/main/qr-sepay.png" alt="QR SePay TPBank" width="300">')
+    lines.append('</p>')
     report = adir / "REPORT.md"
     report.write_text("\n".join(lines), encoding="utf-8")
     return report

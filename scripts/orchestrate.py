@@ -858,6 +858,10 @@ def write_report(report: MissionReport, out_dir: Path) -> None:
         "- Ngân hàng: **TPBank**",
         "- Chủ tài khoản: **PHAM THANH NAM**",
         "- Số tài khoản: **69238686888**",
+        "",
+        '<p align="center">',
+        '  <img src="https://raw.githubusercontent.com/ptn1411/skill/main/qr-sepay.png" alt="QR SePay TPBank" width="300">',
+        '</p>',
     ])
     (out_dir / "REPORT.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
