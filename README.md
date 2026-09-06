@@ -21,9 +21,11 @@ Dự án cung cấp cả hướng dẫn cho AI agent lẫn các CLI Python có t
 
 Các skill chuyên biệt nằm trong từng thư mục con. Điểm vào chính là [SKILL.md](./SKILL.md); danh sách công cụ ngoài và điều kiện cài đặt nằm trong [TOOLS.md](./TOOLS.md).
 
-## Bắt đầu nhanh
+## Cài đặt và Tích hợp
 
-Yêu cầu Python 3.10 trở lên. Một số workflow cần công cụ ngoài như Node.js, Android SDK, JADX, Nmap hoặc `ilspycmd`; chỉ cài chúng khi skill tương ứng yêu cầu.
+Yêu cầu Python 3.10 trở lên. Hướng dẫn chi tiết từng bước xem tại [INSTALL.md](https://github.com/ptn1411/skill/blob/main/INSTALL.md).
+
+### 1. Cài đặt môi trường
 
 ```powershell
 git clone https://github.com/ptn1411/skill.git
@@ -31,26 +33,114 @@ cd skill
 python -m pip install -r requirements.txt
 ```
 
-Phân tích một artifact được ủy quyền:
+> [!TIP]
+> Các công cụ bên ngoài (Node.js, `asar`, Android SDK, JADX, Nmap, `ilspycmd`) chỉ cần cài khi workflow tương ứng yêu cầu. Chi tiết xem tại [TOOLS.md](./TOOLS.md).
+
+### 2. Cài đặt / Đồng bộ Skill vào AI Agent (Gemini CLI, Claude Code, Antigravity)
+
+Dự án cung cấp sẵn script đồng bộ toàn bộ skill vào thư mục cấu hình toàn cục của các AI agent:
 
 ```powershell
-python scripts\orchestrate.py "C:\path\to\owned-app.exe" --out output
+# Sao chép skill vào ~/.gemini/config/skills và ~/.claude/skills (khuyên dùng trên Windows)
+python scripts\link_skills.py
+
+# Hoặc tạo Directory Junction (NTFS):
+python scripts\link_skills.py --mode junction
 ```
 
-Đánh giá một host hoặc URL và nhận báo cáo tổng hợp:
+Đối với các CLI Agent khác (Codex, OpenAI), xem hướng dẫn cấu hình manifest trong [INSTALL.md](https://github.com/ptn1411/skill/blob/main/INSTALL.md#c%C3%A0i-v%C3%A0o-cli-agent).
+
+---
+
+## Các câu lệnh hay dùng
+
+### 1. Điều phối & Đánh giá toàn diện (Orchestration & Assessment)
+
+Tự động phân loại mục tiêu (IP, URL web, binary, file bundle, sourcemap) và chạy chuỗi skill tương ứng:
 
 ```powershell
-python scripts\assess.py example.com --dry-run
+# Chạy chuỗi đánh giá toàn diện mục tiêu mạng / web (Nmap -> Web Recon -> Báo cáo tổng hợp)
 python scripts\full_assess.py https://app.example.com --out output\assessment
+python scripts\full_assess.py 192.168.1.10 --out output\assessment
+
+# Tự động nhận diện và phân tích artifact nhị phân / ứng dụng / sourcemap
+python scripts\orchestrate.py "C:\path\to\owned-app.exe" --out output
+python scripts\orchestrate.py "C:\path\to\app-folder" --out output
+
+# Xem trước luồng phân loại (dry-run) mà không thực thi
+python scripts\assess.py example.com --dry-run
 ```
 
-Tra cứu một CVE trong Exploit-DB:
+### 2. Tra cứu lỗ hổng & Threat Intelligence
+
+Tra cứu thông tin tình báo CVE, exploit công khai mà không cần chạy payload nguy hiểm:
 
 ```powershell
+# Tra cứu đa nguồn (CISA KEV, FIRST EPSS, NIST NVD, Exploit-DB, PoC GitHub)
+python vulnerability-lookup\scripts\lookup_vuln.py --cve CVE-2024-6387
+python vulnerability-lookup\scripts\lookup_vuln.py --cve CVE-2021-44228 --out output\cve-report
+
+# Tìm kiếm mã khai thác và tài liệu trong Exploit-DB cục bộ
 python searching-exploit-db\scripts\search_exploit_db.py --cve CVE-2021-44228
+python searching-exploit-db\scripts\search_exploit_db.py --query "OpenSSH 9.8"
 ```
 
-Xem [INSTALL.md](./INSTALL.md) để biết thêm lệnh theo từng skill và cách tích hợp với CLI agent.
+### 3. Rà soát Hạ tầng, Cloud & Chuỗi cung ứng (Cloud, Docker & SBOM)
+
+```powershell
+# Kiểm tra Dockerfile, Kubernetes YAML, Terraform, Cloud configs
+python container-cloud-auditor\scripts\analyze_container_cloud.py . --out output\container-cloud
+
+# Lập SBOM, audit phụ thuộc, phát hiện dependency confusion và package độc hại
+python sbom-supply-chain-auditor\scripts\analyze_supply_chain.py . --out output\sbom
+```
+
+### 4. Rà soát Web & Quét mạng (Web Recon & Network Scanner)
+
+```powershell
+# Trinh sát thụ động Web (Security Headers, TLS, CORS, rò rỉ endpoint)
+python web-app-scanner\scripts\web_recon.py https://example.com --out output\web-recon
+
+# Kiểm tra SQLi có kiểm soát trên tham số (yêu cầu cờ --authorized)
+python web-app-scanner\scripts\sqli_test.py "https://example.com/item?id=1" --authorized
+
+# Quét cổng & dịch vụ bằng Nmap tích hợp
+python network-scanner\scripts\nmap_scan.py 192.168.1.0/24 --profile quick --out output\nmap
+```
+
+### 5. Khôi phục cấu trúc & Rà soát nhị phân (Binary & Reverse Engineering)
+
+Phục vụ phân tích cấu trúc, audit mã nguồn và tìm kiếm secret bị mã hóa cứng:
+
+```powershell
+# Nhận diện ngôn ngữ, trình biên dịch, packager của file nhị phân
+python binary-identifier\scripts\identify_app.py target.exe
+
+# Bung gói ứng dụng Electron / ASAR để audit offline
+python electron-builder-unpacker\scripts\unpack_electron_builder.py app-dir --out output\electron-unpacked
+
+# Audit cấu hình bảo mật Electron (IPC, webPreferences, preload bridges)
+python electron-app-analyzer\scripts\analyze_electron.py output\electron-unpacked --out output\electron-analysis
+
+# Khôi phục mã nguồn từ file JS sourcemap (.map)
+python javascript-deobfuscator\scripts\extract_sourcemap.py "https://example.com/app.js.map" output\recovered-js
+
+# Phân tích tĩnh gói ứng dụng Android APK/XAPK nội bộ
+python android-apk-pentester\scripts\analyze_apk.py app.apk --out output\apk-analysis
+
+# Threat hunting trên Windows Event Logs (dò tìm tấn công, tài khoản mới, xóa log)
+python windows-log-hunter\scripts\hunt_eventlog.py --out output\hunt
+```
+
+### 6. Kiểm thử & Phát triển Skill mới
+
+```powershell
+# Chạy toàn bộ unit test hồi quy của dự án
+python -m unittest discover -s tests -v
+
+# Kiểm tra tính hợp lệ hợp đồng (contract) của một skill mới
+python orchestrator-plugin-sdk\scripts\validate_skill_contract.py container-cloud-auditor
+```
 
 ## Cấu trúc dự án
 
