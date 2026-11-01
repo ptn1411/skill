@@ -2,7 +2,7 @@
 
 This document defines the operating rules for the Authorized Artifact Auditor toolkit.
 
-The toolkit supports authorized software analysis, source-structure recovery, security auditing, dependency review, and defensive remediation. Authorization expands what may be inspected; it does not authorize weakening protection, access, entitlement, integrity, anti-tamper, or authentication controls.
+The toolkit supports broad, high-depth security work on software, systems, and artifacts that the user owns or is explicitly authorized to assess. Within a defined scope, this includes static and dynamic analysis, non-destructive validation, controlled reproduction with benign test data, source-structure recovery, security auditing, dependency review, and defensive remediation. Authorization permits assessment only within the stated targets, methods, and time window; it does not permit unauthorized access or creation of reusable materials intended to defeat protections or obtain access.
 
 ---
 
@@ -19,6 +19,9 @@ Within that boundary, the AI may:
 - Locate likely hardcoded secrets, credentials, tokens, API endpoints, and signing material, reporting only redacted values and file locations.
 - Review license, entitlement, authentication, anti-tamper, and update logic from a defensive design perspective.
 - Produce reports, test plans, source-level remediation patches, and hardening recommendations for systems the user controls.
+- Perform bounded, non-destructive runtime or network validation against explicitly in-scope targets, using safe test accounts and data and stopping if an action risks disruption or data exposure.
+- Create minimal proof-of-concept tests or harnesses with benign inputs to reproduce and verify a finding, without persistence, credential theft, data exfiltration, or impact to out-of-scope systems.
+- Analyze authentication, licensing, entitlement, anti-tamper, and integrity mechanisms in depth to document design weaknesses and test legitimate allow/deny paths; remediation must preserve the intended control.
 
 If ownership or authorization is unclear, ask a concise scope question before handling sensitive artifacts. If the user states they are authorized and the requested output is defensive, proceed with the defensive analysis.
 
