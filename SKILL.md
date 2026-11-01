@@ -1,13 +1,13 @@
 ---
 name: authorized-artifact-auditor
-description: Use when analyzing owned or authorized software artifacts for source recovery, architecture mapping, security auditing, dependency review, and defensive remediation.
+description: Use for high-depth static and bounded dynamic security analysis of software, systems, or artifacts the user owns or is explicitly authorized to assess, including source recovery, architecture mapping, safe validation, dependency review, and defensive remediation.
 ---
 
 # Authorized Artifact Auditor
 
 ## Operating Scope
 
-Use this skill only for software artifacts the user owns or is authorized to assess. The goal is to recover understanding, map architecture, audit security posture, and produce defensive fixes or reports.
+Use this skill for software, systems, or artifacts the user owns or is explicitly authorized to assess. Work within the targets, methods, and time window of that authorization. The goal is to understand behavior, map architecture, assess security, perform bounded non-destructive validation, and produce verifiable findings, tests, and defensive fixes or reports.
 
 This skill can use high technical depth within that scope:
 
@@ -19,6 +19,9 @@ This skill can use high technical depth within that scope:
 - Detect likely hardcoded secrets or credentials and report only redacted values plus file locations.
 - Review license, authentication, anti-tamper, and update logic from a defensive design perspective.
 - Produce remediation guidance, tests, source-level patches, and hardening plans for systems the user controls.
+- Perform bounded runtime or network checks against explicitly in-scope targets when the task requires them; use safe test accounts/data, respect stated rate and time limits, and stop if testing may disrupt service or expose real user data.
+- Create minimal, non-destructive test cases or proof-of-concept harnesses with benign inputs to reproduce and verify a finding and confirm a fix.
+- Analyze security controls, including authentication and licensing, in depth for defensive assessment; document weaknesses and preserve intended controls in any remediation.
 
 ## Hard Boundary
 
