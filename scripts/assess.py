@@ -30,7 +30,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+_SKILL_DIR = Path(__file__).resolve().parent.parent
+REPO_ROOT = _SKILL_DIR if (_SKILL_DIR / "network-scanner").is_dir() else _SKILL_DIR.parent
 PYTHON = sys.executable
 
 CIDR_RE = re.compile(r"^\d{1,3}(\.\d{1,3}){3}/\d{1,2}$")
@@ -95,7 +96,7 @@ def build_command(kind: str, target: str, out: str, extra: list[str]) -> list[st
         s = REPO_ROOT / "windows-log-hunter" / "scripts" / "hunt_eventlog.py"
         return [PYTHON, str(s), "--out", f"{out}/hunt", *extra]
     if kind in ("artifact", "jsmap"):
-        s = REPO_ROOT / "scripts" / "orchestrate.py"
+        s = Path(__file__).resolve().parent / "orchestrate.py"
         return [PYTHON, str(s), target, "--out", out, *extra]
     return None
 

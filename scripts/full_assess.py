@@ -39,7 +39,8 @@ from urllib.parse import urlparse
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import assess  # reuse classify()
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+_SKILL_DIR = Path(__file__).resolve().parent.parent
+REPO_ROOT = _SKILL_DIR if (_SKILL_DIR / "network-scanner").is_dir() else _SKILL_DIR.parent
 PYTHON = sys.executable
 
 WEB_PORTS = {80, 443, 8080, 8443, 8000, 8888, 8081, 9443}
@@ -99,7 +100,7 @@ def recon_web(url: str, out: Path, idx: int) -> Step:
 
 
 def delegate_orchestrate(target: str, out: Path) -> Step:
-    s = REPO_ROOT / "scripts" / "orchestrate.py"
+    s = Path(__file__).resolve().parent / "orchestrate.py"
     cmd = [PYTHON, str(s), target, "--out", str(out)]
     return run_step("Artifact audit", "orchestrate.py", cmd, out / "REPORT.md")
 

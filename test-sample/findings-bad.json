@@ -1,0 +1,1 @@
+{"findings":[{"id":"F-002","severity":"High","title":"Severity on a non-confirmed record must fail","trust_boundary":"test -> test","verdict":"needs_validation"},{"id":"F-002","reason":"duplicate test","title":"Duplicate id must fail","trust_boundary":"test -> test","verdict":"rejected"}],"schema_version":"1.0","target":"test-sample/sample-app.js"}

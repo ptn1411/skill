@@ -1,0 +1,211 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/ptn1411/skill/report-schema.json",
+  "title": "Authorized Artifact Auditor findings",
+  "description": "Machine-readable contract for findings.json. Checked by the standard-library validator in scripts/validate_findings.py. Supports both the standalone report-envelope object (schema_version '1.0', target, findings) and the orchestrator record-array format produced by scripts/findings_aggregator.py. In both formats, authoritative severity is allowed ONLY on confirmed records.",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "target", "findings"],
+      "properties": {
+        "schema_version": { "type": "string", "const": "1.0" },
+        "target": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Exact target audited: file, directory, URL, host, or range. No neighboring systems."
+        },
+        "target_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "SHA-256 of the original artifact, when the target is a file."
+        },
+        "generated": {
+          "type": "string",
+          "description": "Date the report was generated, YYYY-MM-DD."
+        },
+        "scope_note": {
+          "type": "object",
+          "description": "The authorization scope note from SKILL.md: owner/grantor, allowed methods, forbidden methods, time and data handling, stop condition."
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "title", "verdict", "trust_boundary"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^F-[0-9]{3}$",
+                "description": "Stable id within one report, for example F-001. Must be unique."
+              },
+              "title": { "type": "string", "minLength": 1 },
+              "verdict": {
+                "type": "string",
+                "enum": ["confirmed", "needs_validation", "rejected"]
+              },
+              "trust_boundary": {
+                "type": "string",
+                "minLength": 1,
+                "description": "The boundary crossed, or the boundary examined for a needs_validation/rejected record."
+              },
+              "severity": {
+                "type": ["string", "null"],
+                "enum": [
+                  "Critical", "High", "Medium", "Low", "Info",
+                  "critical", "high", "medium", "low", "informational",
+                  null
+                ],
+                "description": "Required exactly when verdict is confirmed; must be absent or null otherwise."
+              },
+              "evidence": {
+                "type": "string",
+                "description": "Concrete observed result for a confirmed record: file, command, input, and observed output. Must never contain a raw secret value."
+              },
+              "reason": {
+                "type": "string",
+                "description": "Required when verdict is rejected: what was checked and why it does not hold."
+              },
+              "location": {
+                "type": "string",
+                "description": "File and line, path, endpoint, or component where the issue was found. For a secret, location plus type plus fingerprint only."
+              },
+              "impact": { "type": "string" },
+              "remediation": {
+                "type": "string",
+                "description": "Concrete defensive fix, test, or hardening step. Never a bypass."
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": { "verdict": { "const": "confirmed" } },
+                  "required": ["verdict"]
+                },
+                "then": { "required": ["severity", "evidence"] }
+              },
+              {
+                "if": {
+                  "properties": { "verdict": { "const": "rejected" } },
+                  "required": ["verdict"]
+                },
+                "then": { "required": ["reason"] }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "description": "A source-grounded issue that has been independently demonstrated to cross a real trust boundary with an observable result.",
+            "properties": {
+              "verdict": { "type": "string", "const": "confirmed" },
+              "fingerprint": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@+-]*$",
+                "description": "Stable source-derived id that does not change across validation states."
+              },
+              "skill": { "type": "string", "minLength": 1 },
+              "title": { "type": "string", "minLength": 1 },
+              "category": { "type": "string", "minLength": 1 },
+              "severity": {
+                "type": "string",
+                "enum": ["critical", "high", "medium", "low", "informational"],
+                "description": "Authoritative severity. Present ONLY on confirmed records and never exceeds demonstrated impact."
+              },
+              "boundary": {
+                "type": "object",
+                "description": "The trust boundary that was crossed. Every field is required so a confirmed record names a concrete affected principal/resource and result.",
+                "properties": {
+                  "principal": { "type": "string", "minLength": 1 },
+                  "input": { "type": "string", "minLength": 1 },
+                  "control": { "type": "string", "minLength": 1 },
+                  "affected": { "type": "string", "minLength": 1 },
+                  "result": { "type": "string", "minLength": 1 }
+                },
+                "required": ["principal", "input", "control", "affected", "result"],
+                "additionalProperties": false
+              },
+              "trace": {
+                "type": "array",
+                "minItems": 1,
+                "description": "Source path from entry to sink.",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "kind": { "type": "string", "enum": ["entrypoint", "propagation", "sink"] },
+                    "file": { "type": "string", "minLength": 1 },
+                    "line": { "type": "integer", "minimum": 0 },
+                    "description": { "type": "string", "minLength": 1 }
+                  },
+                  "required": ["kind", "file", "description"],
+                  "additionalProperties": false
+                }
+              },
+              "evidence": {
+                "type": "array",
+                "minItems": 1,
+                "items": { "type": "string", "minLength": 1 },
+                "description": "Redacted source snippets, command + minimum observed result, or file:line references. Never raw secret values."
+              },
+              "root_cause": { "type": "string", "minLength": 1 },
+              "fix": { "type": "string", "minLength": 1 }
+            },
+            "required": ["verdict", "fingerprint", "skill", "title", "category", "severity", "boundary", "trace", "evidence", "fix"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "A source-grounded candidate whose boundary crossing or impact is not yet demonstrated. Automated scanner hits land here by default.",
+            "properties": {
+              "verdict": { "type": "string", "const": "needs_validation" },
+              "fingerprint": { "type": "string", "minLength": 1, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@+-]*$" },
+              "skill": { "type": "string", "minLength": 1 },
+              "title": { "type": "string", "minLength": 1 },
+              "category": { "type": "string", "minLength": 1 },
+              "candidate_severity": {
+                "type": "string",
+                "enum": ["critical", "high", "medium", "low", "informational"]
+              },
+              "location": {
+                "type": "object",
+                "properties": {
+                  "file": { "type": "string", "minLength": 1 },
+                  "line": { "type": "integer", "minimum": 0 }
+                },
+                "required": ["file"],
+                "additionalProperties": false
+              },
+              "evidence": { "type": "array", "items": { "type": "string" } },
+              "missing_fact": { "type": "string", "minLength": 1 },
+              "validation_plan": { "type": "string", "minLength": 1 }
+            },
+            "required": ["verdict", "fingerprint", "skill", "title", "category", "location", "missing_fact", "validation_plan"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "A candidate that was investigated and found not to be a real boundary violation.",
+            "properties": {
+              "verdict": { "type": "string", "const": "rejected" },
+              "fingerprint": { "type": "string", "minLength": 1, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@+-]*$" },
+              "skill": { "type": "string", "minLength": 1 },
+              "title": { "type": "string", "minLength": 1 },
+              "category": { "type": "string", "minLength": 1 },
+              "reason": { "type": "string", "minLength": 1 }
+            },
+            "required": ["verdict", "fingerprint", "skill", "title", "category", "reason"],
+            "additionalProperties": false
+          }
+        ]
+      }
+    }
+  ]
+}

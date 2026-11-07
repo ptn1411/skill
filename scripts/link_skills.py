@@ -32,6 +32,14 @@ CONFIG_ROOTS = [
     USER_HOME / ".agents" / "skills",
 ]
 
+# Command Code reads user skills from ~/.commandcode/skills (native) and
+# ~/.agents/skills (compat). Its native root gets a full mirror of the Gemini
+# skill set so both agents share the same skills.
+COMMANDCODE_SKILLS = USER_HOME / ".commandcode" / "skills"
+# Source of truth for the Gemini skill set — a superset of the repo list above
+# (it also carries skills that live only in Gemini, e.g. gpm-automate).
+GEMINI_SKILLS_SOURCE = USER_HOME / ".gemini" / "config" / "skills"
+
 # List of skills to link from the workspace to the global config skills folder
 skills_to_link = [
     # (source_in_workspace, target_in_config)
@@ -110,6 +118,53 @@ def remove_dest(dest_path: Path) -> None:
     subprocess.run(["cmd", "/c", "rmdir", "/s", "/q", str(dest_path)], check=True)
 
 
+def install_skill(src_path: Path, dest_path: Path, mode: str, root_skill: bool = False) -> bool:
+    """Install a single skill at dest_path (copy or junction). Returns True on failure."""
+    if dest_path.exists() or dest_path.is_symlink() or is_junction(dest_path):
+        print(f"    - Removing existing: {dest_path}")
+        try:
+            remove_dest(dest_path)
+        except Exception as ex:
+            print(f"    [!] Error removing: {ex}")
+            return True
+
+    if mode == "junction":
+        print(f"    - Creating junction: {src_path} -> {dest_path}")
+        try:
+            subprocess.run(["cmd", "/c", "mklink", "/J", str(dest_path), str(src_path)], check=True)
+            print("    [+] Linked successfully.")
+        except Exception as e:
+            print(f"    [!] Junction creation failed: {e}")
+            return True
+        return False
+
+    print(f"    - Copying directory: {src_path} -> {dest_path}")
+    try:
+        if root_skill:
+            dest_path.mkdir(parents=True, exist_ok=True)
+            # Copy root files
+            for root_file in ["SKILL.md", "MASTER_POLICY.md", "AUDIT-METHOD.md", "INSTALL.md", "TOOLS.md", "requirements.txt", "report-schema.json"]:
+                f_src = src_path / root_file
+                if f_src.is_file():
+                    shutil.copy2(f_src, dest_path / root_file)
+            # Copy selected root dirs
+            for root_dir in ["scripts", "agents", "docs", "tests"]:
+                d_src = src_path / root_dir
+                if d_src.is_dir():
+                    shutil.copytree(d_src, dest_path / root_dir, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+        else:
+            shutil.copytree(
+                src_path,
+                dest_path,
+                ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".git")
+            )
+        print("    [+] Copied successfully.")
+    except Exception as e:
+        print(f"    [!] Copy failed: {e}")
+        return True
+    return False
+
+
 def sync_into(config_root: Path, mode: str = "copy") -> bool:
     """Sync every listed skill into config_root using either copy or junction."""
     config_root = config_root.resolve()
@@ -131,49 +186,30 @@ def sync_into(config_root: Path, mode: str = "copy") -> bool:
             continue
 
         print(f"[*] Processing '{dest_name}':")
+        failed = install_skill(src_path, dest_path, mode, root_skill=(src_rel == ".")) or failed
 
-        if dest_path.exists() or dest_path.is_symlink() or is_junction(dest_path):
-            print(f"    - Removing existing: {dest_path}")
-            try:
-                remove_dest(dest_path)
-            except Exception as ex:
-                print(f"    [!] Error removing: {ex}")
-                failed = True
-                continue
+    return failed
 
-        if mode == "junction":
-            print(f"    - Creating junction: {src_path} -> {dest_path}")
-            try:
-                subprocess.run(["cmd", "/c", "mklink", "/J", str(dest_path), str(src_path)], check=True)
-                print("    [+] Linked successfully.")
-            except Exception as e:
-                print(f"    [!] Junction creation failed: {e}")
-                failed = True
-        else:
-            print(f"    - Copying directory: {src_path} -> {dest_path}")
-            try:
-                if src_rel == ".":
-                    dest_path.mkdir(parents=True, exist_ok=True)
-                    # Copy root files
-                    for root_file in ["SKILL.md", "MASTER_POLICY.md", "INSTALL.md", "TOOLS.md", "requirements.txt"]:
-                        f_src = src_path / root_file
-                        if f_src.is_file():
-                            shutil.copy2(f_src, dest_path / root_file)
-                    # Copy selected root dirs
-                    for root_dir in ["scripts", "agents", "docs", "tests"]:
-                        d_src = src_path / root_dir
-                        if d_src.is_dir():
-                            shutil.copytree(d_src, dest_path / root_dir, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
-                else:
-                    shutil.copytree(
-                        src_path,
-                        dest_path,
-                        ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".git")
-                    )
-                print("    [+] Copied successfully.")
-            except Exception as e:
-                print(f"    [!] Copy failed: {e}")
-                failed = True
+
+def mirror_into(config_root: Path, source_root: Path, mode: str = "copy") -> bool:
+    """Mirror every skill directory from source_root into config_root.
+
+    Used to give Command Code a full copy of the Gemini skill set, including
+    skills that are not part of this repo. The destination is created on demand.
+    """
+    if not source_root.is_dir():
+        print(f"[-] Source skills directory not found, skipping: {source_root}")
+        return False
+
+    config_root.mkdir(parents=True, exist_ok=True)
+    print(f"[+] Mirroring skills from {source_root} to {config_root} (mode={mode})...\n")
+
+    failed = False
+    for src_path in sorted(p for p in source_root.iterdir() if p.is_dir()):
+        if not (src_path / "SKILL.md").is_file():
+            continue
+        print(f"[*] Processing '{src_path.name}':")
+        failed = install_skill(src_path, config_root / src_path.name, mode) or failed
 
     return failed
 
@@ -198,11 +234,15 @@ def main() -> int:
         print(f"\n{'='*70}\n[ROOT] {root}\n{'='*70}")
         failed = sync_into(root, mode=args.mode) or failed
 
+    # Command Code: mirror the full Gemini skill set into its native root.
+    print(f"\n{'='*70}\n[ROOT] {COMMANDCODE_SKILLS}\n{'='*70}")
+    failed = mirror_into(COMMANDCODE_SKILLS, GEMINI_SKILLS_SOURCE, mode=args.mode) or failed
+
     if failed:
         print("\n[!] Some skills failed to install. Please check permissions or run from a standard cmd prompt.")
         return 1
 
-    print("\n[+] All skills installed into every config root! Restart/refresh your Gemini and Claude sessions.")
+    print("\n[+] All skills installed into every config root! Restart/refresh your Gemini, Claude and Command Code sessions.")
     return 0
 
 

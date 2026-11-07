@@ -33,8 +33,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import findings_aggregator  # noqa: E402  (local module, added to path above)
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+
+_SKILL_DIR = Path(__file__).resolve().parent.parent
+REPO_ROOT = _SKILL_DIR if (_SKILL_DIR / "binary-identifier").is_dir() else _SKILL_DIR.parent
 PYTHON = sys.executable
 
 
@@ -63,6 +67,7 @@ class MissionReport:
     fingerprint: dict = field(default_factory=dict)
     phases: list[PhaseResult] = field(default_factory=list)
     deliverables: dict = field(default_factory=dict)
+    findings_summary: dict = field(default_factory=dict)
 
 
 # --- Helpers -----------------------------------------------------------------
@@ -784,6 +789,27 @@ def execute_mission(
             duration_s=0.0,
         ))
 
+    # Phase 4.5 - Aggregate scanner output into one verdict-disciplined findings.json.
+    # Every auto-harvested record is `needs_validation` (a scanner hit is a candidate,
+    # not a confirmed boundary violation) per AUDIT-METHOD.md.
+    try:
+        findings_path, findings_summary = findings_aggregator.write_findings(out_dir)
+        report.findings_summary = findings_summary
+        report.phases.append(PhaseResult(
+            name="findings", skill="(aggregate)", command=[], returncode=0,
+            stdout_tail=(
+                f"Aggregated {findings_summary.get('total', 0)} candidate(s) into "
+                f"{findings_path.name} (all needs_validation). "
+                f"By advisory severity: {findings_summary.get('candidate_severity', {})}. "
+                "Promote to confirmed only after demonstrating boundary + result "
+                "(see AUDIT-METHOD.md); validate with scripts/validate_findings.py."
+            ),
+            stderr_tail="", started_at=datetime.now(timezone.utc).isoformat(), duration_s=0.0,
+            artifacts=[str(findings_path)],
+        ))
+    except Exception as exc:  # never let aggregation break the run
+        report.findings_summary = {"error": str(exc)}
+
     # Inventory deliverables
     deliverables: dict = {"source": [], "findings": [], "remediation": [], "reports": []}
     for path in out_dir.rglob("*"):
@@ -844,7 +870,22 @@ def write_report(report: MissionReport, out_dir: Path) -> None:
         if p.stderr_tail:
             lines.extend(["<details><summary>stderr (tail)</summary>", "", "```", p.stderr_tail, "```", "</details>", ""])
 
+    fs = report.findings_summary or {}
     lines.extend([
+        "## Findings (verdict discipline)",
+        "",
+        "Auto-harvested scanner hits are recorded as **candidates** (`needs_validation`) "
+        "in `findings.json`, not confirmed vulnerabilities. A candidate carries an "
+        "*advisory* `candidate_severity` only; authoritative severity is assigned to a "
+        "record **only after** it is promoted to `confirmed` with a demonstrated "
+        "boundary + observable result. See [AUDIT-METHOD.md](../AUDIT-METHOD.md).",
+        "",
+        "```json",
+        json.dumps(fs, indent=2, ensure_ascii=False),
+        "```",
+        "",
+        "Validate with: `python scripts/validate_findings.py output/findings.json`",
+        "",
         "## Deliverables",
         "```json",
         json.dumps(report.deliverables, indent=2, ensure_ascii=False),
