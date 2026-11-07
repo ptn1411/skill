@@ -27,9 +27,11 @@ CONFIG_ROOTS = [
     USER_HOME / ".gemini" / "config" / "skills",
     USER_HOME / ".gemini" / "skills",
     USER_HOME / ".claude" / "skills",
-    # Cline reads global skills from ~/.agents/skills (see vercel-labs/skills:
-    # agent "cline" -> globalSkillsDir ~/.agents/skills).
+    # Cline reads global skills from ~/.agents/skills and ~/.cline/skills
     USER_HOME / ".agents" / "skills",
+    USER_HOME / ".codex" / "skills",
+    USER_HOME / ".cline" / "skills",
+    USER_HOME / ".copilot" / "skills",
 ]
 
 # Command Code reads user skills from ~/.commandcode/skills (native) and
@@ -148,7 +150,7 @@ def install_skill(src_path: Path, dest_path: Path, mode: str, root_skill: bool =
                 if f_src.is_file():
                     shutil.copy2(f_src, dest_path / root_file)
             # Copy selected root dirs
-            for root_dir in ["scripts", "agents", "docs", "tests"]:
+            for root_dir in ["scripts", "agents", "docs", "tests", "test-sample"]:
                 d_src = src_path / root_dir
                 if d_src.is_dir():
                     shutil.copytree(d_src, dest_path / root_dir, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
